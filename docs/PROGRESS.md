@@ -179,6 +179,12 @@ Project rules for agents: `AGENTS.md`. Original brief: `docs/BRIEF.md`.
   Note: the owner's own "Initial commit" (made on github.com) carries their account e-mail in git
   metadata — rewriting `main`'s history would be needed to remove it; left to the owner.
 - `npm run check` passes (136 + 36).
+- **First APK run (#9) failed** after 20 s in `npm run check`: `TS2688 Cannot find type definition
+file for 'jest'`. Cause: the workflow set `NODE_ENV=production` for the whole job, so `npm ci`
+  skipped devDependencies (never seen before because Actions had never run). Fix: `NODE_ENV=production`
+  only on the prebuild and Gradle steps. Verified locally that `expo prebuild` succeeds and that the
+  release build type signs with the test keystore (`androiddebugkey`). Gradle itself can't run in
+  this sandbox (Google's Maven host is blocked), so the CI run is the first real Gradle build.
 - Next: apply the 4 migrations → verify (tables, grants, RLS, advisors, pg_cron jobs, smoke-test RPCs)
   → owner enables anonymous sign-ins → configure URL + publishable key for the APK build → run the
   "Android test APK" workflow on `main` → share the Releases link.
