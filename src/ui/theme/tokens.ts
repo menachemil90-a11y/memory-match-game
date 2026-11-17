@@ -33,13 +33,13 @@ export const palette = {
 
 export const colors = {
   /** Soft gradient used behind every screen (top → bottom). */
-  backgroundGradient: ['#7B5CFF', '#5B3FD9', '#3FB8F5'] as const,
+  backgroundGradient: ['#7B5CFF', '#5B3FD9', '#2A82CC'] as const,
   surface: palette.white,
   surfaceAlt: palette.cloud,
   text: palette.ink,
   textMuted: palette.slate,
   textOnDark: palette.white,
-  textOnDarkMuted: 'rgba(255,255,255,0.78)',
+  textOnDarkMuted: 'rgba(255,255,255,0.9)',
   border: palette.mist,
   focus: palette.sun,
   overlay: 'rgba(30, 18, 80, 0.55)',

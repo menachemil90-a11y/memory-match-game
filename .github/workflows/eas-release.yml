@@ -1,0 +1,46 @@
+name: EAS release (store builds)
+
+# Store builds in Expo's cloud (EAS Build) and optional upload to the stores
+# (EAS Submit). Run from the Actions tab → "EAS release" → Run workflow.
+# Needs the repository secret EXPO_TOKEN (expo.dev → Access tokens).
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: android, ios or all
+        default: android
+        required: true
+      profile:
+        description: EAS build profile (production, preview, development)
+        default: production
+        required: true
+      submit:
+        description: Upload to the store after building (true/false)
+        default: 'false'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - name: EAS build
+        env:
+          PLATFORM: ${{ inputs.platform }}
+          PROFILE: ${{ inputs.profile }}
+          SUBMIT: ${{ inputs.submit }}
+        run: |
+          EXTRA=""
+          if [ "$SUBMIT" = "true" ]; then EXTRA="--auto-submit"; fi
+          npx eas-cli@latest build --non-interactive --no-wait --platform "$PLATFORM" --profile "$PROFILE" $EXTRA

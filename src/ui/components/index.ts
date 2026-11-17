@@ -1,7 +1,6 @@
 export * from './AppText';
 export * from './GameButton';
 export * from './IconButton';
-export * from './PlaceholderScreen';
 export * from './Screen';
 export * from './Confetti';
 export * from './Dialog';
@@ -10,3 +9,4 @@ export * from './Toggle';
 export * from './Pressable3D';
 export * from './ProgressOverlay';
 export * from './TurnTimerRing';
+export * from './SegmentedControl';

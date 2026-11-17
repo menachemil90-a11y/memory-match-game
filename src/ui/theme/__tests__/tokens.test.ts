@@ -33,6 +33,12 @@ describe('design tokens', () => {
     }
   });
 
+  it('keeps white text readable on every background gradient stop (≥ 3:1)', () => {
+    for (const stop of colors.backgroundGradient) {
+      expect({ stop, ok: contrast(stop, '#FFFFFF') >= 3 }).toEqual({ stop, ok: true });
+    }
+  });
+
   it('keeps tap targets at least 48dp', () => {
     expect(minTouchTarget).toBeGreaterThanOrEqual(48);
   });

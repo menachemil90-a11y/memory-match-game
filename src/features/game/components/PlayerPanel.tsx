@@ -81,7 +81,7 @@ export const PlayerPanel = memo(function PlayerPanel({
       style={[
         styles.panel,
         {
-          backgroundColor: active ? color.main : 'rgba(255,255,255,0.16)',
+          backgroundColor: active ? color.main : 'rgba(30,18,80,0.28)',
           borderColor: active ? colors.card.border : 'transparent',
         },
         panelStyle,

@@ -73,7 +73,8 @@
     "check": "npm run typecheck && npm run lint && npm run format:check && npm test -- --ci && npm run test:server",
     "assets": "node scripts/build-assets.mjs",
     "sounds": "node scripts/synth-audio.mjs",
-    "test:server": "tsc -p supabase/tests/tsconfig.json && node --test --test-concurrency=1 \"supabase/tests/*.test.mjs\""
+    "test:server": "tsc -p supabase/tests/tsconfig.json && node --test --test-concurrency=1 \"supabase/tests/*.test.mjs\"",
+    "brand": "node scripts/build-brand.mjs"
   },
   "private": true,
   "jest": {

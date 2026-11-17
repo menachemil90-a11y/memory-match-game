@@ -406,3 +406,10 @@ describe('end of game, rematch and disconnects', () => {
     ).toEqual([]);
   });
 });
+
+describe('data minimisation', () => {
+  it('anonymous-user cleanup is a safe no-op where Supabase Auth is absent', async () => {
+    const rows = await server.admin('select private.cleanup_anonymous_users() as n');
+    expect(rows[0].n).toBe(0);
+  });
+});

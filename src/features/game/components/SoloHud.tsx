@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
   hud: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: 'rgba(30,18,80,0.28)',
     borderRadius: radii.xl,
     paddingVertical: spacing.xs,
   },

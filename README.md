@@ -11,15 +11,16 @@ The full product brief is in [`docs/BRIEF.md`](docs/BRIEF.md).
 
 ## Status
 
-| Phase                                          | State   |
-| ---------------------------------------------- | ------- |
-| 0 — Setup, tokens, fonts, navigation skeleton  | ✅ done |
-| 1 — Pure engine + no-repeat shuffle + tests    | ✅ done |
-| 2 — Play screen, Solo & 2-player, sound/haptic | ✅ done |
-| 3 — Built-in boards, board & level pickers     | ✅ done |
-| 4 — Custom photo boards, crop flow, editor     | ✅ done |
-| 5 — Online 1v1 (Supabase)                      | ✅ built, deploy pending |
-| 6 — Polish & release prep                      | –       |
+All six phases are built. See the final report in the PR/session and:
+
+| Doc                                                | What                                                  |
+| -------------------------------------------------- | ----------------------------------------------------- |
+| [`RELEASING.md`](RELEASING.md)                     | Over-the-air updates vs. store releases, step by step |
+| [`supabase/README.md`](supabase/README.md)         | Online backend: deploy & operate                      |
+| [`docs/STORE_LISTING.md`](docs/STORE_LISTING.md)   | Play Store texts, graphics, screenshots plan          |
+| [`docs/DATA_SAFETY.md`](docs/DATA_SAFETY.md)       | Data safety form + Families / app content answers     |
+| [`docs/PRIVACY_POLICY.md`](docs/PRIVACY_POLICY.md) | Privacy policy draft (needs hosting)                  |
+| [`assets/licenses/`](assets/licenses/)             | Third-party asset licenses                            |
 
 ## Tech stack (Expo SDK 58)
 
@@ -81,7 +82,11 @@ npm run start:go     # dev server for Expo Go
 npm run typecheck    # tsc --noEmit (strict)
 npm run lint         # ESLint (no `any`, no Math.random)
 npm test             # Jest
-npm run check        # all of the above + Prettier check
+npm run test:server  # Supabase migrations on a real Postgres (PGlite) + parity tests
+npm run check        # everything above + Prettier check
+npm run assets       # re-render board art, avatars, card backs (Twemoji → PNG)
+npm run brand        # re-render icon, adaptive icon, splash, store graphics
+npm run sounds       # re-synthesize sound effects and music
 ```
 
 ## Running on an Android phone

@@ -81,7 +81,7 @@ async function playGame(p, cardCount, shotPrefix) {
   await p.waitForTimeout(2000);
   await p.getByRole('button', { name: 'Solo' }).click();
   await p.waitForTimeout(800);
-  await p.getByRole('button', { name: 'Pick a level' }).click();
+  await p.getByRole('button', { name: /^Animals,/ }).click();
   await p.waitForTimeout(1200);
   await p.screenshot({ path: `${OUT}/levels.png` });
   await p.getByRole('button', { name: /^Easy, 6 pairs/ }).click();
@@ -100,7 +100,7 @@ async function playGame(p, cardCount, shotPrefix) {
   await p.waitForTimeout(1500);
   await p.getByRole('button', { name: '2 Players' }).click();
   await p.waitForTimeout(800);
-  await p.getByRole('button', { name: 'Pick a level' }).click();
+  await p.getByRole('button', { name: /^Animals,/ }).click();
   await p.waitForTimeout(1000);
   await p.getByRole('button', { name: /^Tiny, 3 pairs/ }).click();
   await p.waitForTimeout(1000);
