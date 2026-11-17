@@ -61,7 +61,9 @@ Roll back: expo.dev → project → Updates → pick the previous update → "Re
 4. **First Google Play upload must be manual**: Play Console → your app → Testing →
    Internal testing → Create release → upload the `.aab`. After that, EAS Submit can
    upload automatically (needs a Google service-account key: Play Console → Setup →
-   API access; save the JSON in EAS: `eas credentials`).
+   API access; save the JSON in EAS: `eas credentials`). Submit profiles in `eas.json`
+   upload as a **draft** you then review and roll out in the Play Console:
+   `--profile production` → Internal testing, `--profile closed-test` → Closed testing (alpha).
 5. Promote internal → closed → production in the Play Console.
 
 iOS (later): same workflow with platform `ios`. EAS builds in the cloud (no Mac

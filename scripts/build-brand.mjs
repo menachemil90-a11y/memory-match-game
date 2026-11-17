@@ -11,6 +11,8 @@ import { fileURLToPath } from 'node:url';
 
 import { Resvg } from '@resvg/resvg-js';
 
+import { encodeRgbPng } from './lib/png.mjs';
+
 const require = createRequire(import.meta.url);
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FONT = join(
@@ -118,4 +120,13 @@ const feature = svg(
   1024,
   500,
 );
-save('docs/store/feature-graphic.png', png(feature, 1024));
+save(
+  'docs/store/feature-graphic.png',
+  encodeRgbPng(
+    new Resvg(feature, {
+      fitTo: { mode: 'width', value: 1024 },
+      background: GRAPE, // Play requires a feature graphic without alpha
+      font: { fontFiles: [FONT], loadSystemFonts: false, defaultFontFamily: 'Fredoka' },
+    }).render(),
+  ),
+);

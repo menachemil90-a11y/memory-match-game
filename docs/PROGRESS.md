@@ -97,15 +97,16 @@ _Snapshot at the end of the first build session (all six phases of `docs/BRIEF.m
 
 ## 3. Still open (needs the owner)
 
-1. ~~GitHub Actions blocked~~ — **resolved (session 2):** the owner made the repository **public** (Actions is free for public repos). Consequence: **never commit secrets** (see session log below). The APK workflow is run after the Supabase deployment.
-2. **Supabase project for online play** — **created (session 2):** free project `memory-match`, ref `idarczmhhhkazbuewwao`, region `eu-central-1` (Frankfurt, closest to Israel for future Hebrew users). URL + anon key committed in `.env`. Migrations **not applied yet** (see session log). Still to do by the owner afterwards: enable **Authentication → Sign In / Providers → Allow anonymous sign-ins**.
-3. **Final app name and package/bundle ID** — placeholders `Memory Match` / `com.placeholder.memorymatch` / scheme `memorymatch`. Must be set before the first store upload (can't change after).
-4. **Privacy policy hosting** — fill in publisher name, contact email and date in `docs/PRIVACY_POLICY.md`, host it publicly, set `PRIVACY_POLICY_URL` in `src/lib/appInfo.ts`.
-5. **Accounts the owner creates** — Google Play developer account ($25 one-time); free Expo account → access token saved as GitHub secret `EXPO_TOKEN`; then `eas init` + `eas update:configure` (adds `extra.eas.projectId` and `updates.url` to `app.json`).
-6. **Store screenshots** — plan in `docs/STORE_LISTING.md`; need the app on a real phone.
-7. **Optional:** a domain for https App Links / Universal Links (brief: ask before implementing).
-8. **iOS** — not started (needs an Apple Developer account, $99/year — ask first).
-9. **Hebrew / RTL** — not started (i18n is ready).
+The step-by-step plan to launch is **`docs/RELEASE_PLAN.md`** (dates, who does what).
+
+1. ~~GitHub Actions blocked~~ — resolved: repo is **public** for now (never commit secrets or personal data). The owner wants it **private again before launch** → builds move to EAS first (RELEASE_PLAN §10).
+2. ~~Supabase project~~ — **live**: `memory-match` (`idarczmhhhkazbuewwao`, eu-central-1, free plan), migrations 1–4 applied by the owner and verified read-only. **Owner to paste migration 05** (grant hardening) in the SQL Editor; owner enabling anonymous sign-ins (reported in progress).
+3. **Final app name and package ID** — still placeholders (`Memory Match`, `com.placeholder.memorymatch`, scheme `memorymatch`). Owner gives them before the first upload (target Dec 1); the package can never change.
+4. **Privacy policy hosting** — text ready (`docs/PRIVACY_POLICY.md`, placeholders only — the repo is public). Owner hosts it on Google Sites with name/email/date filled in there; then set `PRIVACY_POLICY_URL` in `src/lib/appInfo.ts`.
+5. **Expo account + access token** (via the secure credential form) → `eas init`, `eas update:configure`, first EAS preview APK + production AAB.
+6. **Google Play developer account** — owner registering (personal, ~3 weeks, ≈ Dec 8). Then 14-day closed test with ≥ 12 testers (owner collects 15–20 Gmail addresses).
+7. **Photo-board screenshots** — 2 shots from the owner's phone (web can't import photos).
+8. **Optional:** tablet screenshots; a domain for https App Links; Hebrew/RTL; iOS ($99/year — ask first).
 
 ---
 
@@ -187,6 +188,62 @@ file for 'jest'`. Cause: the workflow set `NODE_ENV=production` for the whole jo
 - **APK run #10 succeeded** (Gradle ~20 min). Pre-release **`apk-0.1.0-build10`** (repo → Releases), file `memory-match-0.1.0-a173f90.apk` (~84 MB, arm64-v8a + armeabi-v7a). Verified by downloading
   it: valid APK with a v2+ signing block containing the test keystore certificate, and the JS bundle
   contains the Supabase project URL. Online play needs no rebuild once the backend is deployed.
-- Next: apply the 4 migrations → verify (tables, grants, RLS, advisors, pg_cron jobs, smoke-test RPCs)
-  → owner enables anonymous sign-ins → configure URL + publishable key for the APK build → run the
-  "Android test APK" workflow on `main` → share the Releases link.
+- Owner reported migrations 1–4 applied by hand (SQL Editor) — so the connector problem above is moot.
+
+## 8. Session log — store prep (session 3, 2026-11-17)
+
+Owner update: Supabase migrations applied by hand; anonymous sign-ins being enabled; test APK
+being installed; Google Play personal account registering (~3 weeks); store upload goal in
+about a month. Asked for: bug fixes + new APKs, all store material, `docs/RELEASE_PLAN.md`.
+
+**Supabase — verified read-only** (no writes, nothing re-applied):
+
+- 6 tables with the expected RLS; 8 boards × 24 images (checksum identical to the repo seed);
+  6 levels; config values; both pg_cron jobs active; `rooms` in `supabase_realtime`;
+  `pgcrypto` + `pg_cron` installed; 0 rooms, 0 anonymous users so far.
+- All 27 functions compared by MD5 of their source against the repo migrations loaded into
+  PGlite: 23 identical; the other 4 (`start_game`, `create_room`, `join_room`,
+  `resolve_turn`) differ **only** because the SQL editor stripped `--` comments inside the
+  bodies — identical after stripping comments (verified by checksum).
+- Function grants correct: anon can execute nothing; authenticated only the 10 API
+  functions; no access to the `private` schema.
+- **Finding:** Supabase's default privileges gave `anon`/`authenticated` ALL table privileges
+  (INSERT/UPDATE/DELETE/TRUNCATE…) on `public.rooms` and `public.app_config`. RLS (select-only
+  policies) still blocked API writes, and PostgREST can't TRUNCATE, so nothing was exposed —
+  but it contradicts the design. The PGlite harness now mimics Supabase's default
+  privileges; a new test failed until the new migration
+  **`20261117000005_harden_table_grants.sql`** (revoke all, re-grant SELECT only; plus an
+  index on `rooms.level_id` from the performance advisor). **Not applied — owner pastes it.**
+- Advisors: 9× "SECURITY DEFINER executable by authenticated" and 2× "RLS enabled, no policy"
+  (private tables) are intended.
+- Supabase Free pauses projects with too little weekly DB activity → added
+  `.github/workflows/supabase-keepalive.yml` (read-only `app_config` query every 3 days;
+  the sandbox can't reach supabase.co, so it was tested on GitHub — see below).
+
+**Bugs found and fixed (via the store-screenshot runs at phone sizes):**
+
+- Home: on short screens (360×640 dp) the "Find the pairs!" tagline hid behind the Solo
+  button. Now: compact hero below 720 dp height (smaller logo/title, tighter buttons) and the
+  screen scrolls as a fallback. Checked at 360×640, 360×800, 412×915, 800×1280: no overlap.
+- Level picker: "Medium" was truncated to "Medi…" on 360 dp phones (the most common Android
+  width). The level name now has its own full-width row (+ auto-shrink). Checked: no truncation at 320 and 360 dp.
+- Board picker: "Dino World"/"Yummy Food" truncated at 320 dp → auto-shrink
+  (`adjustsFontSizeToFit`; native only — **verify on a device**).
+
+**Store material:**
+
+- 6 captioned phone screenshots (1080×1920, 24-bit PNG) in `docs/store/screenshots/`, made
+  from real app screens: `e2e/store-screenshots.cjs` (raw capture, fails if a shot is
+  missing) + `npm run store:screenshots` (captions in brand style via resvg).
+- Feature graphic re-encoded as 24-bit RGB (Play rejects alpha); pixels identical.
+  Shared encoder `scripts/lib/png.mjs` (Node zlib, no new dependency).
+- `docs/DATA_SAFETY.md`: full IARC questionnaire answers (corrected: online play **does** let
+  users interact → "Users Interact"; still PEGI 3/Everyone), permission list as verified
+  in the APK. `docs/PRIVACY_POLICY.md`: server location (EU), template note (no personal
+  data in the repo). `docs/STORE_LISTING.md`: graphics table, upload order, photo-board shots.
+- `eas.json`: production = AAB; submit profiles `production` (internal) and `closed-test`
+  (alpha), both as drafts.
+- Verified on the build-10 APK: targetSdk **36** (Play requirement for new apps since
+  Aug 31, 2026), minSdk 24, all 30 arm64 native libraries **16 KB page-aligned**.
+- **`docs/RELEASE_PLAN.md`** written (first-timer guide, timeline, 12-tester rule, tester
+  messages in English + Hebrew, personal vs organization, repo-private/EAS plan).

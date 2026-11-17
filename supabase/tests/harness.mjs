@@ -34,6 +34,11 @@ const SUPABASE_STUBS = `
   $$;
   grant usage on schema auth to anon, authenticated;
   grant usage on schema public to anon, authenticated;
+  -- Like a real Supabase project: everything created in "public" is granted
+  -- to the API roles by default. Migrations must revoke what they don't want.
+  alter default privileges in schema public grant all on tables to anon, authenticated;
+  alter default privileges in schema public grant all on sequences to anon, authenticated;
+  alter default privileges in schema public grant all on functions to anon, authenticated;
 `;
 
 export async function startTestServer() {

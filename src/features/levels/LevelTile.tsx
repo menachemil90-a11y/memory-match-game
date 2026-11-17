@@ -66,11 +66,18 @@ export function LevelTile({ availability, best, showBest, onPress }: LevelTilePr
           : t('levels.a11yLevel', { level: name, pairs: level.pairs })
       }
     >
+      {/* The name gets the full width so it never truncates on 360 dp phones. */}
+      <AppText
+        variant="heading"
+        color={ink}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.75}
+      >
+        {name}
+      </AppText>
       <View style={styles.header}>
         <View style={styles.titles}>
-          <AppText variant="heading" color={ink} numberOfLines={1}>
-            {name}
-          </AppText>
           <AppText variant="bodyStrong" color={ink}>
             {t('common.pairs', { count: level.pairs })}
           </AppText>
@@ -114,12 +121,12 @@ const styles = StyleSheet.create({
   wrapper: { flexBasis: '47%', flexGrow: 1, minHeight: 124 + motion.buttonPressDepth },
   face: {
     padding: spacing.md,
-    gap: spacing.sm,
+    gap: spacing.xs,
     justifyContent: 'space-between',
     borderWidth: 3,
     borderColor: 'rgba(255,255,255,0.55)',
   },
-  header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   titles: { flex: 1 },
   best: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   bestText: { marginLeft: spacing.xs },

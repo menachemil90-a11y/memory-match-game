@@ -1,20 +1,24 @@
 import { router } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { AppText, GameButton, IconButton, Screen } from '@/ui/components';
 import { colors, radii, shadows, spacing } from '@/ui/theme';
 
+/** Screens shorter than this (in dp) get the compact home layout. */
+const COMPACT_HEIGHT = 720;
+
 /** Decorative logo: two tilted cards. Pure views, no external art. */
-function Logo() {
+function Logo({ scale = 1 }: { scale?: number }) {
+  const card = { width: 76 * scale, height: 96 * scale };
   return (
-    <View style={styles.logo} accessible={false}>
-      <View style={[styles.logoCard, styles.logoCardLeft]}>
+    <View style={[styles.logo, { width: 150 * scale, height: 110 * scale }]} accessible={false}>
+      <View style={[styles.logoCard, card, styles.logoCardLeft]}>
         <AppText variant="title" color={colors.textOnDark}>
           ?
         </AppText>
       </View>
-      <View style={[styles.logoCard, styles.logoCardRight]}>
+      <View style={[styles.logoCard, card, styles.logoCardRight]}>
         <AppText variant="title" color={colors.textOnDark}>
           ?
         </AppText>
@@ -25,9 +29,13 @@ function Logo() {
 
 export default function HomeScreen() {
   const { t } = useTranslation();
+  // Short screens (e.g. 360×640 dp, or tall system bars) get a smaller hero, and
+  // the screen scrolls as a last resort so the tagline never hides behind a button.
+  const compact = useWindowDimensions().height < COMPACT_HEIGHT;
 
   return (
     <Screen
+      scroll
       showBack={false}
       headerRight={
         <IconButton
@@ -37,10 +45,10 @@ export default function HomeScreen() {
         />
       }
     >
-      <View style={styles.hero}>
-        <Logo />
+      <View style={[styles.hero, compact && styles.heroCompact]}>
+        <Logo scale={compact ? 0.75 : 1} />
         <AppText
-          variant="display"
+          variant={compact ? 'title' : 'display'}
           color={colors.textOnDark}
           align="center"
           accessibilityRole="header"
@@ -52,7 +60,7 @@ export default function HomeScreen() {
         </AppText>
       </View>
 
-      <View style={styles.buttons}>
+      <View style={[styles.buttons, compact && styles.buttonsCompact]}>
         <GameButton
           label={t('home.solo')}
           icon="person"
@@ -88,17 +96,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    minHeight: 200,
+    paddingVertical: spacing.lg,
+  },
+  heroCompact: {
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
   },
   logo: {
-    width: 150,
-    height: 110,
     marginBottom: spacing.md,
   },
   logoCard: {
     position: 'absolute',
-    width: 76,
-    height: 96,
     borderRadius: radii.card,
     borderWidth: 4,
     borderColor: colors.card.border,
@@ -124,5 +132,8 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 480,
     alignSelf: 'center',
+  },
+  buttonsCompact: {
+    gap: spacing.md,
   },
 });

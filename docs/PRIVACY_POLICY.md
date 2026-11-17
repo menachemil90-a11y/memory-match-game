@@ -1,5 +1,9 @@
 # Privacy Policy — Memory Match
 
+<!-- Template: the repository is public, so the real publisher name, contact
+email and date are filled in ONLY in the hosted copy (see docs/RELEASE_PLAN.md),
+never here. Replace every [BRACKETED] placeholder there. -->
+
 _Last updated: [DATE]_
 
 Memory Match ("the app") is a memory game for families, published by
@@ -31,6 +35,8 @@ Supabase, Inc. as our service provider) and processes:
 - the nickname and avatar you choose (nicknames are filtered for inappropriate words);
 - the game itself: room code, board, level, your moves and the score;
 - technical data necessary to deliver the service, such as your IP address in server logs.
+
+The game server is located in the European Union (Frankfurt, Germany).
 
 We use this data only to run online games. We do not sell or share it, and we
 do not use it for advertising. Data is encrypted in transit.

@@ -74,7 +74,8 @@
     "assets": "node scripts/build-assets.mjs",
     "sounds": "node scripts/synth-audio.mjs",
     "test:server": "tsc -p supabase/tests/tsconfig.json && node --test --test-concurrency=1 \"supabase/tests/*.test.mjs\"",
-    "brand": "node scripts/build-brand.mjs"
+    "brand": "node scripts/build-brand.mjs",
+    "store:screenshots": "node scripts/build-store-screenshots.mjs"
   },
   "private": true,
   "jest": {

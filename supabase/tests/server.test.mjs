@@ -160,6 +160,27 @@ describe('rooms', () => {
     expect(await errorOf(server.asAnon(`select * from public.rooms`))).toMatch(/permission denied/);
     expect(await server.asAnon(`select key from public.app_config order by key`)).toHaveLength(3);
   });
+
+  it('API roles can only read tables: no write grants despite Supabase default privileges', async () => {
+    const grants = await server.admin(
+      `select table_name, grantee, privilege_type from information_schema.role_table_grants
+       where table_schema = 'public' and grantee in ('anon', 'authenticated')
+       order by 1, 2, 3`,
+    );
+    expect(grants.map((g) => `${g.table_name} ${g.grantee} ${g.privilege_type}`)).toEqual([
+      'app_config anon SELECT',
+      'app_config authenticated SELECT',
+      'rooms authenticated SELECT',
+    ]);
+    for (const sql of [
+      `insert into public.app_config (key, value) values ('x', '1')`,
+      `update public.app_config set value = '"9.9.9"'`,
+      `delete from public.app_config`,
+      `truncate public.rooms`,
+    ]) {
+      expect(await errorOf(server.as(HOST, sql))).toMatch(/permission denied/);
+    }
+  });
 });
 
 describe('dealing on the server', () => {

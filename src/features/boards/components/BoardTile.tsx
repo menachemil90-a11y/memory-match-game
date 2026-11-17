@@ -95,7 +95,8 @@ export function BoardTile({ board, width, onPress, onLongPress }: BoardTileProps
         </View>
       </View>
       <View style={styles.label}>
-        <AppText variant="heading" numberOfLines={1}>
+        {/* Shrinks long names ("Yummy Food") on very narrow phones instead of cutting them. */}
+        <AppText variant="heading" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
           {name}
         </AppText>
         <AppText variant="caption" color={colors.textMuted}>

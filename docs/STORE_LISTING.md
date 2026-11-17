@@ -47,23 +47,40 @@ Game → Board (or Puzzle) · Tags: memory, family, kids, brain, matching
 
 ## Graphics
 
-| Asset                               | File                             | Status        |
-| ----------------------------------- | -------------------------------- | ------------- |
-| App icon 512×512                    | `docs/store/play-icon-512.png`   | ✅ generated  |
-| Feature graphic 1024×500            | `docs/store/feature-graphic.png` | ✅ generated  |
-| Phone screenshots (2–8, 1080×1920+) | —                                | 📋 plan below |
-| 7" / 10" tablet screenshots         | —                                | 📋 optional   |
+All files are ready to upload (Play requires JPEG or 24-bit PNG without alpha for the
+feature graphic and screenshots; these are 24-bit PNGs).
 
-## Screenshots plan (portrait, 1080×2340)
+| Asset                              | File                                                 | Status                        |
+| ---------------------------------- | ---------------------------------------------------- | ----------------------------- |
+| App icon 512×512                   | `docs/store/play-icon-512.png`                       | ✅                            |
+| Feature graphic 1024×500           | `docs/store/feature-graphic.png`                     | ✅                            |
+| Phone screenshots 1080×1920 (9:16) | `docs/store/screenshots/phone-1.png` … `phone-6.png` | ✅ 6 captioned shots          |
+| Photo-board screenshots            | — (needs the owner's phone, see below)               | 📋 2 more recommended         |
+| 7" / 10" tablet screenshots        | —                                                    | optional (can be added later) |
 
-1. **Home** — "Find the pairs!" with the big colorful buttons
-2. **Game in progress (Animals, Medium)** — two cards open, one pair glowing — caption: "Flip and find the pairs"
-3. **Photo board in play** — family photos as cards — caption: "Play with your own photos"
-4. **Cropper** — "Photo 3 of 12" with the card-shaped frame — caption: "Every photo fits perfectly"
-5. **2 players** — turn banner "Noa's turn!" — caption: "Play together on one phone"
-6. **Online waiting room** with code — caption: "Invite a friend with a code"
-7. **Results** — 3 stars + confetti — caption: "Earn stars and beat your best"
-8. **Board picker** — all 8 boards
+Upload order (the first 3 matter most — they show in search results):
 
-Capture on a real phone (Android: Power + Volume down) or from an emulator, then
-add the captions in a simple frame (Canva template, our gradient and Fredoka font).
+1. `phone-1.png` — "Flip, remember, find the pairs!" (game in progress)
+2. `phone-2.png` — "8 picture boards — or make your own" (board picker)
+3. `phone-3.png` — "Play together on one phone" (2 players)
+4. `phone-4.png` — "6 levels, from little kids to experts"
+5. `phone-5.png` — "Earn stars and beat your best"
+6. `phone-6.png` — "Solo, 2 players or online with family" (home)
+
+**How they're made** (repeatable after UI changes): `e2e/store-screenshots.cjs` plays the
+web build in a headless browser at 360×640 dp ×3 and saves raw shots to
+`docs/store/screenshots/raw/`; `npm run store:screenshots` adds the captions. Native-only
+effects (confetti) don't appear on web — the shots never claim them.
+
+### Photo-board screenshots (from your phone)
+
+Custom photo boards are the app's main selling point, but the web build can't import
+photos, so these two must be taken on a phone:
+
+1. A **photo board in play** (Medium level, two of your photos face up).
+2. The **cropper** ("Photo 3 of 12" with the card-shaped frame).
+
+Use photos you're happy to make public (pets, toys, food, landscapes — avoid faces of
+children and anything with names or addresses). Take them with Power + Volume down and
+send them to Claude; they'll be framed and captioned like the others
+("Play with your own photos", "Every photo fits perfectly").
