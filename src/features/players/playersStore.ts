@@ -20,6 +20,9 @@ interface PlayersState {
   local: [PlayerProfile, PlayerProfile];
   /** Tabletop mode: phone flat between players, Player 2's side rotated 180°. */
   tabletop: boolean;
+  /** Online nickname and avatar (no real names needed). */
+  online: { name: string; avatar: AvatarId };
+  setOnline: (profile: { name: string; avatar: AvatarId }) => void;
   setLocalPlayer: (index: 0 | 1, profile: PlayerProfile) => void;
   setTabletop: (value: boolean) => void;
 }
@@ -38,6 +41,8 @@ export const usePlayersStore = create<PlayersState>()(
     (set) => ({
       local: DEFAULT_LOCAL_PLAYERS,
       tabletop: false,
+      online: { name: '', avatar: 'owl' },
+      setOnline: (online) => set({ online: { ...online, name: sanitizeName(online.name) } }),
       setLocalPlayer: (index, profile) =>
         set((s) => {
           const local: [PlayerProfile, PlayerProfile] = [...s.local];

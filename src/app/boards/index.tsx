@@ -36,7 +36,7 @@ export default function BoardPickerScreen() {
 
   const open = (board: Board) => {
     if (mode === 'online') {
-      router.push({ pathname: '/online', params: { boardId: board.id } });
+      router.push({ pathname: '/online/new', params: { boardId: board.id } });
     } else {
       router.push({ pathname: '/levels', params: { mode, boardId: board.id } });
     }

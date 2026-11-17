@@ -294,7 +294,9 @@ export function GameView({ session }: { session: GameSession }) {
 
   // Stable callback (cards restart their fly animation if it changes).
   const effectRef = useRef(effect);
-  effectRef.current = effect;
+  useEffect(() => {
+    effectRef.current = effect;
+  }, [effect]);
   const onFlyEnd = useCallback(
     (index: number) => {
       const current = effectRef.current;

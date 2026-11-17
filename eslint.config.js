@@ -7,7 +7,15 @@ module.exports = defineConfig([
   expoConfig,
   eslintPluginPrettierRecommended,
   {
-    ignores: ['dist/*', '.expo/*', 'android/*', 'ios/*', 'node_modules/*', 'supabase/functions/*'],
+    ignores: [
+      'dist/*',
+      '.expo/*',
+      'android/*',
+      'ios/*',
+      'node_modules/*',
+      'supabase/functions/*',
+      'supabase/tests/.build/**',
+    ],
   },
   {
     files: ['**/*.ts', '**/*.tsx'],

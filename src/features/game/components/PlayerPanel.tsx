@@ -13,8 +13,8 @@ import { useTranslation } from 'react-i18next';
 import { AVATAR_SOURCES } from '@/features/boards/builtin';
 import type { BoardImage } from '@/features/boards/types';
 import { playerColor, type PlayerProfile } from '@/features/players/playersStore';
-import { AppText } from '@/ui/components';
-import { colors, fonts, radii, spacing } from '@/ui/theme';
+import { AppText, TurnTimerRing } from '@/ui/components';
+import { colors, fonts, palette, radii, spacing } from '@/ui/theme';
 
 export interface PlayerPanelProps {
   profile: PlayerProfile;
@@ -27,6 +27,10 @@ export interface PlayerPanelProps {
   /** Ref to the pile view, measured so matched cards can fly into it. */
   pileRef?: RefObject<ComponentRef<typeof View> | null>;
   onPileLayout?: () => void;
+  /** Online: turn clock shown as a ring around the avatar. */
+  timer?: { deadline: number; totalMs: number } | null;
+  /** Online: connection indicator (with an accessible label, never color alone). */
+  presence?: { online: boolean; label: string } | null;
 }
 
 const PILE_CARD = 38;
@@ -41,6 +45,8 @@ export const PlayerPanel = memo(function PlayerPanel({
   reduceMotion,
   pileRef,
   onPileLayout,
+  timer = null,
+  presence = null,
 }: PlayerPanelProps) {
   const { t } = useTranslation();
   const color = playerColor(profile.color);
@@ -83,8 +89,23 @@ export const PlayerPanel = memo(function PlayerPanel({
       accessible
       accessibilityLabel={`${displayName}, ${t('game.collected', { count })}`}
     >
-      <View style={[styles.avatar, { borderColor: color.main }]}>
-        <Image source={AVATAR_SOURCES[profile.avatar]} style={styles.avatarImage} />
+      <View style={styles.avatarWrap}>
+        <View style={[styles.avatar, { borderColor: color.main }]}>
+          <Image source={AVATAR_SOURCES[profile.avatar]} style={styles.avatarImage} />
+        </View>
+        {timer ? (
+          <TurnTimerRing size={66} deadline={timer.deadline} totalMs={timer.totalMs} />
+        ) : null}
+        {presence ? (
+          <View
+            accessible
+            accessibilityLabel={presence.label}
+            style={[
+              styles.presence,
+              { backgroundColor: presence.online ? palette.mint : palette.slate },
+            ]}
+          />
+        ) : null}
       </View>
       <View style={styles.info}>
         <AppText variant="heading" color={colors.textOnDark} numberOfLines={1} style={styles.name}>
@@ -134,6 +155,17 @@ const styles = StyleSheet.create({
     borderRadius: radii.xl,
     borderWidth: 3,
     minHeight: 72,
+  },
+  avatarWrap: { width: 66, height: 66, alignItems: 'center', justifyContent: 'center' },
+  presence: {
+    position: 'absolute',
+    right: 4,
+    bottom: 4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 3,
+    borderColor: colors.card.border,
   },
   avatar: {
     width: 52,
