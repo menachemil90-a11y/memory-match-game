@@ -7,3 +7,4 @@ export * from './Confetti';
 export * from './Dialog';
 export * from './StarRow';
 export * from './Toggle';
+export * from './Pressable3D';
