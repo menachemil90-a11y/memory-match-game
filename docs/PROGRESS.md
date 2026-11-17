@@ -97,8 +97,8 @@ _Snapshot at the end of the first build session (all six phases of `docs/BRIEF.m
 
 ## 3. Still open (needs the owner)
 
-1. **GitHub Actions is blocked** on this private repo: every job fails within ~2 s before running any step (no logs). Likely a billing / spending-limit lock. Check the message on any failed run at <https://github.com/menachemil90-a11y/memory-match-game/actions>. Once fixed, re-run "Android test APK" → the APK appears under **Releases**.
-2. **Supabase project for online play** — not created (needs the owner's OK). The account has one free project ("puzzle-peak"); a second free project "memory-match" would cost $0. Then: apply migrations, enable **Authentication → Allow anonymous sign-ins**, put the URL + anon key in `.env` or the GitHub Actions variables (see `supabase/README.md`).
+1. ~~GitHub Actions blocked~~ — **resolved (session 2):** the owner made the repository **public** (Actions is free for public repos). Consequence: **never commit secrets** (see session log below). The APK workflow is run after the Supabase deployment.
+2. **Supabase project for online play** — **created (session 2):** free project `memory-match`, ref `idarczmhhhkazbuewwao`, region `eu-central-1` (Frankfurt, closest to Israel for future Hebrew users). Migrations **not applied yet** (see session log). Still to do by the owner afterwards: enable **Authentication → Sign In / Providers → Allow anonymous sign-ins**.
 3. **Final app name and package/bundle ID** — placeholders `Memory Match` / `com.placeholder.memorymatch` / scheme `memorymatch`. Must be set before the first store upload (can't change after).
 4. **Privacy policy hosting** — fill in publisher name, contact email and date in `docs/PRIVACY_POLICY.md`, host it publicly, set `PRIVACY_POLICY_URL` in `src/lib/appInfo.ts`.
 5. **Accounts the owner creates** — Google Play developer account ($25 one-time); free Expo account → access token saved as GitHub secret `EXPO_TOKEN`; then `eas init` + `eas update:configure` (adds `extra.eas.projectId` and `updates.url` to `app.json`).
@@ -153,3 +153,21 @@ EXPO_OFFLINE=1 npx expo export --platform android   # bundle sanity check
 
 Web smoke test: see `e2e/README.md`. Releasing: `RELEASING.md`. Backend: `supabase/README.md`.
 Project rules for agents: `AGENTS.md`. Original brief: `docs/BRIEF.md`.
+
+---
+
+## 7. Session log — device testing & release prep (session 2, 2026-11-17)
+
+- Re-ran all checks on `main` (`eea70c5`): `npm run check` passes — 136 Jest tests, 36 server tests.
+- Owner approved creating the free Supabase project and all deploy steps to it. Created **`memory-match`**
+  (`idarczmhhhkazbuewwao`, `eu-central-1`, free plan, $0).
+- Applying `20261117000001_online_core.sql` through the Supabase connector **timed out twice**: the
+  connector shows the owner a confirmation question (the migration contains `revoke`/`delete`
+  statements) and nobody answered it within 60 s. Verified afterwards that **nothing was applied**
+  (no tables, no migration rows) — the project is clean, so a retry is safe.
+- Owner made the repo public. Scanned all tracked files for secrets (service-role keys, JWTs, tokens,
+  private keys, passwords): none. Only `credentials/sideload.keystore` is tracked — a deliberately
+  public **test-only** key (see `credentials/README.md`); it must never sign a Play release.
+- Next: apply the 4 migrations → verify (tables, grants, RLS, advisors, pg_cron jobs, smoke-test RPCs)
+  → owner enables anonymous sign-ins → configure URL + publishable key for the APK build → run the
+  "Android test APK" workflow on `main` → share the Releases link.
