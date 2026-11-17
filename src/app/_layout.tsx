@@ -14,6 +14,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { initI18n } from '@/lib/i18n';
+import { initSound, setMusicWanted } from '@/lib/sound';
 import { palette } from '@/ui/theme';
 
 initI18n();
@@ -33,6 +34,11 @@ export default function RootLayout() {
       void SplashScreen.hideAsync().catch(() => undefined);
     }
   }, [ready]);
+
+  useEffect(() => {
+    initSound();
+    setMusicWanted(true);
+  }, []);
 
   if (!ready) {
     return null;

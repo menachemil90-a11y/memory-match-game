@@ -1,14 +1,11 @@
-import { useTranslation } from 'react-i18next';
+import { Redirect } from 'expo-router';
 
-import { PlaceholderScreen } from '@/ui/components';
+import { GameView } from '@/features/game/GameView';
+import { useGameSession } from '@/features/game/gameSessionStore';
 
 export default function GameScreen() {
-  const { t } = useTranslation();
-  return (
-    <PlaceholderScreen
-      title={t('game.title')}
-      phase={2}
-      links={[{ label: t('results.title'), href: '/results', variant: 'primary' }]}
-    />
-  );
+  const session = useGameSession((s) => s.session);
+  if (!session) return <Redirect href="/" />;
+  // A new key per game resets all per-game UI state (deal, effects, timers).
+  return <GameView key={session.id} session={session} />;
 }

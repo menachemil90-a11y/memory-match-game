@@ -41,7 +41,7 @@ export function IconButton({
   }));
 
   const setPressed = (value: number) => {
-    pressed.value = reduceMotion ? value : withTiming(value, { duration: 70 });
+    pressed.set(reduceMotion ? value : withTiming(value, { duration: 70 }));
   };
 
   return (
