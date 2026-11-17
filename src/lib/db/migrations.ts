@@ -26,6 +26,34 @@ export const MIGRATIONS: readonly string[] = [
     PRIMARY KEY (board_id, level_id)
   );
   `,
+  // 2 — custom photo boards (files live in the app's document directory)
+  `
+  CREATE TABLE IF NOT EXISTS custom_boards (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    card_back TEXT NOT NULL,
+    cover_photo_id TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS custom_photos (
+    id TEXT PRIMARY KEY,
+    board_id TEXT NOT NULL REFERENCES custom_boards (id) ON DELETE CASCADE,
+    position INTEGER NOT NULL,
+    source_file TEXT NOT NULL,
+    card_file TEXT NOT NULL,
+    thumb_file TEXT NOT NULL,
+    source_width INTEGER NOT NULL,
+    source_height INTEGER NOT NULL,
+    crop_rotation INTEGER NOT NULL DEFAULT 0,
+    crop_x REAL NOT NULL,
+    crop_y REAL NOT NULL,
+    crop_size REAL NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS custom_photos_board ON custom_photos (board_id, position);
+  `,
 ];
 
 export async function migrate(db: Db): Promise<number> {

@@ -8,6 +8,7 @@ import { BUILTIN_BOARDS } from '@/features/boards/builtin';
 import { BoardTile } from '@/features/boards/components/BoardTile';
 import { CreateBoardTile } from '@/features/boards/components/CreateBoardTile';
 import type { Board } from '@/features/boards/types';
+import { useCustomGameBoards } from '@/features/boards/useBoard';
 import { AppText, Screen } from '@/ui/components';
 import { colors, spacing } from '@/ui/theme';
 
@@ -30,7 +31,7 @@ export default function BoardPickerScreen() {
   const { t } = useTranslation();
   const mode = parseMode(useLocalSearchParams<{ mode?: string }>().mode);
   const tileWidth = useTileWidth();
-  const customBoards: Board[] = [];
+  const customBoards = useCustomGameBoards();
   const allowCustom = mode !== 'online';
 
   const open = (board: Board) => {
@@ -58,7 +59,12 @@ export default function BoardPickerScreen() {
             </Animated.View>
             {customBoards.map((board, i) => (
               <Animated.View key={board.id} entering={FadeInDown.delay((i + 1) * 40).duration(300)}>
-                <BoardTile board={board} width={tileWidth} onPress={() => open(board)} />
+                <BoardTile
+                  board={board}
+                  width={tileWidth}
+                  onPress={() => open(board)}
+                  onLongPress={() => router.push(`/my-boards/${board.id}`)}
+                />
               </Animated.View>
             ))}
           </View>

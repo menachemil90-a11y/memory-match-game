@@ -14,10 +14,10 @@ The full product brief is in [`docs/BRIEF.md`](docs/BRIEF.md).
 | Phase                                          | State   |
 | ---------------------------------------------- | ------- |
 | 0 — Setup, tokens, fonts, navigation skeleton  | ✅ done |
-| 1 — Pure engine + no-repeat shuffle + tests    | next    |
-| 2 — Play screen, Solo & 2-player, sound/haptic | –       |
-| 3 — Built-in boards, board & level pickers     | –       |
-| 4 — Custom photo boards, crop flow, editor     | –       |
+| 1 — Pure engine + no-repeat shuffle + tests    | ✅ done |
+| 2 — Play screen, Solo & 2-player, sound/haptic | ✅ done |
+| 3 — Built-in boards, board & level pickers     | ✅ done |
+| 4 — Custom photo boards, crop flow, editor     | ✅ done |
 | 5 — Online 1v1 (Supabase)                      | –       |
 | 6 — Polish & release prep                      | –       |
 
