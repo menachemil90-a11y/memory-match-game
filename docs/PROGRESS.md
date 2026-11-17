@@ -129,7 +129,6 @@ Verified only by unit tests, mocks and the web preview — **must be checked on 
 
 ## 5. Known issues and limitations
 
-- **No APK produced yet** (GitHub Actions blocked — see open item 1).
 - `updates.url` / `projectId` not in `app.json` yet → over-the-air updates are inactive until `eas init` + `eas update:configure`.
 - Online play needs the migrations applied and anonymous sign-ins enabled on the `memory-match` project (the app is configured via `.env`).
 - Server nickname test skips non-ASCII names (PGlite uses an ASCII locale); Hebrew nicknames are accepted by the client filter but not verified against a real UTF-8 database.
@@ -185,6 +184,9 @@ file for 'jest'`. Cause: the workflow set `NODE_ENV=production` for the whole jo
   only on the prebuild and Gradle steps. Verified locally that `expo prebuild` succeeds and that the
   release build type signs with the test keystore (`androiddebugkey`). Gradle itself can't run in
   this sandbox (Google's Maven host is blocked), so the CI run is the first real Gradle build.
+- **APK run #10 succeeded** (Gradle ~20 min). Pre-release **`apk-0.1.0-build10`** (repo → Releases), file `memory-match-0.1.0-a173f90.apk` (~84 MB, arm64-v8a + armeabi-v7a). Verified by downloading
+  it: valid APK with a v2+ signing block containing the test keystore certificate, and the JS bundle
+  contains the Supabase project URL. Online play needs no rebuild once the backend is deployed.
 - Next: apply the 4 migrations → verify (tables, grants, RLS, advisors, pg_cron jobs, smoke-test RPCs)
   → owner enables anonymous sign-ins → configure URL + publishable key for the APK build → run the
   "Android test APK" workflow on `main` → share the Releases link.
