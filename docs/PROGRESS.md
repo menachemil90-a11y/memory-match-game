@@ -98,7 +98,7 @@ _Snapshot at the end of the first build session (all six phases of `docs/BRIEF.m
 ## 3. Still open (needs the owner)
 
 1. ~~GitHub Actions blocked~~ — **resolved (session 2):** the owner made the repository **public** (Actions is free for public repos). Consequence: **never commit secrets** (see session log below). The APK workflow is run after the Supabase deployment.
-2. **Supabase project for online play** — **created (session 2):** free project `memory-match`, ref `idarczmhhhkazbuewwao`, region `eu-central-1` (Frankfurt, closest to Israel for future Hebrew users). Migrations **not applied yet** (see session log). Still to do by the owner afterwards: enable **Authentication → Sign In / Providers → Allow anonymous sign-ins**.
+2. **Supabase project for online play** — **created (session 2):** free project `memory-match`, ref `idarczmhhhkazbuewwao`, region `eu-central-1` (Frankfurt, closest to Israel for future Hebrew users). URL + anon key committed in `.env`. Migrations **not applied yet** (see session log). Still to do by the owner afterwards: enable **Authentication → Sign In / Providers → Allow anonymous sign-ins**.
 3. **Final app name and package/bundle ID** — placeholders `Memory Match` / `com.placeholder.memorymatch` / scheme `memorymatch`. Must be set before the first store upload (can't change after).
 4. **Privacy policy hosting** — fill in publisher name, contact email and date in `docs/PRIVACY_POLICY.md`, host it publicly, set `PRIVACY_POLICY_URL` in `src/lib/appInfo.ts`.
 5. **Accounts the owner creates** — Google Play developer account ($25 one-time); free Expo account → access token saved as GitHub secret `EXPO_TOKEN`; then `eas init` + `eas update:configure` (adds `extra.eas.projectId` and `updates.url` to `app.json`).
@@ -131,7 +131,7 @@ Verified only by unit tests, mocks and the web preview — **must be checked on 
 
 - **No APK produced yet** (GitHub Actions blocked — see open item 1).
 - `updates.url` / `projectId` not in `app.json` yet → over-the-air updates are inactive until `eas init` + `eas update:configure`.
-- Online play is disabled in builds until `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` are set.
+- Online play needs the migrations applied and anonymous sign-ins enabled on the `memory-match` project (the app is configured via `.env`).
 - Server nickname test skips non-ASCII names (PGlite uses an ASCII locale); Hebrew nicknames are accepted by the client filter but not verified against a real UTF-8 database.
 - Nickname word lists are English-only.
 - The opponent-away dialog relies on heartbeats every 10 s; behaviour on flaky mobile networks is untested.
@@ -168,6 +168,17 @@ Project rules for agents: `AGENTS.md`. Original brief: `docs/BRIEF.md`.
 - Owner made the repo public. Scanned all tracked files for secrets (service-role keys, JWTs, tokens,
   private keys, passwords): none. Only `credentials/sideload.keystore` is tracked — a deliberately
   public **test-only** key (see `credentials/README.md`); it must never sign a Play release.
+- Owner approved again and set the rule: **only the public Supabase URL + anon key may be in the
+  repo; check every diff for personal data/secrets before pushing.** Third `apply_migration` attempt
+  timed out the same way (connector confirmation never reached the owner). Project still empty.
+- Online config is now committed in **`.env`** (public URL + legacy **anon** key; JWT payload verified
+  `role: anon`). Removed the `vars.EXPO_PUBLIC_SUPABASE_*` lines from the three workflows: an empty
+  Actions variable would have overridden `.env`. Verified that both `expo export` and
+  `expo export:embed` (the step Gradle runs for the APK) load `.env` and embed the URL.
+- Removed the owner's GitHub username and a stale branch name from the README clone instructions.
+  Note: the owner's own "Initial commit" (made on github.com) carries their account e-mail in git
+  metadata — rewriting `main`'s history would be needed to remove it; left to the owner.
+- `npm run check` passes (136 + 36).
 - Next: apply the 4 migrations → verify (tables, grants, RLS, advisors, pg_cron jobs, smoke-test RPCs)
   → owner enables anonymous sign-ins → configure URL + publishable key for the APK build → run the
   "Android test APK" workflow on `main` → share the Releases link.

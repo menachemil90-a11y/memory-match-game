@@ -29,8 +29,8 @@ JavaScript they can't run.
 3. **Access token for GitHub Actions**: expo.dev → Account settings → Access tokens →
    create → copy. In GitHub: repository → Settings → Secrets and variables → Actions →
    **New repository secret** `EXPO_TOKEN`.
-4. **Online play** (optional): Settings → Secrets and variables → Actions → **Variables** →
-   `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (see `supabase/README.md`).
+4. **Online play**: already configured — the public Supabase URL and anon key are in the
+   committed `.env` (see `supabase/README.md`). Never add secret keys there.
 5. **Final name & package**: replace the placeholders in `app.json`
    (`name`, `android.package`, `ios.bundleIdentifier`, `scheme`) **before the first store upload** —
    they can't be changed afterwards.

@@ -94,9 +94,8 @@ npm run sounds       # re-synthesize sound effects and music
 You need Node.js 22.13+ (or 24 LTS) and git on your computer.
 
 ```bash
-git clone https://github.com/menachemil90-a11y/memory-match-game.git
+git clone <this repository's URL>
 cd memory-match-game
-git checkout ccr-72648070-fgc68d     # until this branch is merged
 npm install
 ```
 

@@ -18,7 +18,17 @@ schema, which the API never exposes.
 2. Apply the migrations in order (`supabase db push`, or the SQL editor).
 3. **Authentication → Sign In / Providers → enable "Allow anonymous sign-ins".**
    Recommended: turn on CAPTCHA protection for anonymous sign-ins later.
-4. Copy the project URL and anon key into `.env` (see `.env.example`) and rebuild.
+4. Put the project URL and **anon** key into `.env` (committed; see `.env.example`) and rebuild.
+   Only these two public values belong in the repository — never the `service_role` key, a
+   secret key (`sb_secret_…`), the database password or an access token.
+
+## Live project
+
+|           |                                                               |
+| --------- | ------------------------------------------------------------- |
+| Project   | `memory-match` (free plan), region `eu-central-1` (Frankfurt) |
+| URL       | `https://idarczmhhhkazbuewwao.supabase.co`                    |
+| Dashboard | <https://supabase.com/dashboard/project/idarczmhhhkazbuewwao> |
 
 ## Operating
 

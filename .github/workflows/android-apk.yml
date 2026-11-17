@@ -27,9 +27,8 @@ jobs:
     env:
       NODE_ENV: production
       EXPO_NO_TELEMETRY: '1'
-      # Online play settings (Settings → Secrets and variables → Actions → Variables).
-      EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
-      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+      # Online play: the public Supabase URL + anon key come from the committed .env
+      # (do not set them here — an empty variable would override .env).
       GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=1g" -Dorg.gradle.workers.max=4
     steps:
       - uses: actions/checkout@v4
