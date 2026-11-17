@@ -1,0 +1,74 @@
+{
+  "expo": {
+    "name": "Memory Match",
+    "slug": "memory-match-game",
+    "version": "0.1.0",
+    "scheme": "memorymatch",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#5B3FD9",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.placeholder.memorymatch",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.placeholder.memorymatch",
+      "adaptiveIcon": {
+        "backgroundColor": "#5B3FD9",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#5B3FD9"
+        }
+      ],
+      "expo-image",
+      "expo-sqlite",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to use the photos you choose to make your own memory cards.",
+          "cameraPermission": "Allow $(PRODUCT_NAME) to take a photo for your own memory cards.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-font",
+      "expo-localization",
+      "expo-sharing"
+    ]
+  }
+}
