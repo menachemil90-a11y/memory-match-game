@@ -24,4 +24,21 @@ module.exports = defineConfig([
       ],
     },
   },
+  {
+    files: ['src/game/**/*.ts'],
+    ignores: ['src/game/__tests__/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['react', 'react-native', 'react-native-*', 'expo', 'expo-*', '@/*', 'node:*'],
+              message: 'src/game is a pure engine: no React, Expo, Node or app imports.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);
