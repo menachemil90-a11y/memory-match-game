@@ -444,3 +444,14 @@ over-the-air updates and new test APKs, and **ask first** (no silent updates).
   sometimes ran past its 600-step limit on the medium board and ended in `resolving`, which
   failed APK build 27. After 400 random steps the game is now played out with valid matching
   moves, still checking server = engine after every step, so it always finishes.
+
+### Board tiles: buttons no longer cover the pictures (owner's screenshot, build 28)
+
+The edit button (and the delete button on My Boards) sat in the tile's top-right corner, on
+top of the fanned photos; the "Create board" tile next to it was also ~10 dp shorter (it
+guessed the label height). Now the buttons are in a bar under the name (`BoardTile`
+`actions`), and `boardTileContentHeight(width, withActions)` gives the Create tile the exact
+height of its neighbours. Checked on a web render with a Hebrew-named board (name shown in
+full) and one with two buttons. Regression tests: buttons are outside the picture area,
+built-in tiles have no bar, Create tile height matches. JavaScript-only → shipped over the
+air to `preview` (build 28 gets the "Update available" dialog).

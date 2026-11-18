@@ -41,7 +41,7 @@ export default function MyBoardsScreen() {
       ) : null}
       <View style={styles.grid}>
         <Animated.View entering={FadeInDown.duration(300)}>
-          <CreateBoardTile width={tile} onPress={() => router.push('/my-boards/new')} />
+          <CreateBoardTile width={tile} withActions onPress={() => router.push('/my-boards/new')} />
         </Animated.View>
         {boards.map((board, i) => (
           <Animated.View key={board.id} entering={FadeInDown.delay((i + 1) * 40).duration(300)}>

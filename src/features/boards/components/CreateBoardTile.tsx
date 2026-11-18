@@ -5,7 +5,16 @@ import { useTranslation } from 'react-i18next';
 import { AppText, Pressable3D } from '@/ui/components';
 import { colors, radii, spacing } from '@/ui/theme';
 
-export function CreateBoardTile({ width, onPress }: { width: number; onPress: () => void }) {
+import { boardTileContentHeight } from './BoardTile';
+
+export interface CreateBoardTileProps {
+  width: number;
+  onPress: () => void;
+  /** The board tiles next to it have an edit/delete bar: match their height. */
+  withActions?: boolean;
+}
+
+export function CreateBoardTile({ width, onPress, withActions = false }: CreateBoardTileProps) {
   const { t } = useTranslation();
   return (
     <Pressable3D
@@ -16,7 +25,10 @@ export function CreateBoardTile({ width, onPress }: { width: number; onPress: ()
       faceStyle={styles.face}
       accessibilityLabel={t('boards.create')}
     >
-      <View style={[styles.inner, { minHeight: width * 0.7 + 52 }]}>
+      <View
+        style={[styles.inner, { minHeight: boardTileContentHeight(width, withActions) }]}
+        testID="create-board-tile"
+      >
         <View style={styles.plus}>
           <Ionicons name="add" size={44} color={colors.textOnDark} />
         </View>

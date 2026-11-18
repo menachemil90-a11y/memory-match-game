@@ -58,7 +58,11 @@ export default function BoardPickerScreen() {
           {status === 'failed' ? <BoardsLoadError /> : null}
           <View style={styles.grid}>
             <Animated.View entering={FadeInDown.duration(300)}>
-              <CreateBoardTile width={tileWidth} onPress={() => router.push('/my-boards/new')} />
+              <CreateBoardTile
+                width={tileWidth}
+                withActions
+                onPress={() => router.push('/my-boards/new')}
+              />
             </Animated.View>
             {customBoards.map((board, i) => (
               <Animated.View key={board.id} entering={FadeInDown.delay((i + 1) * 40).duration(300)}>
