@@ -1,0 +1,61 @@
+name: EAS build logs
+
+# Prints the end of a failed EAS cloud build's Gradle phase (and its error
+# lines) into this run's log, so a failure can be diagnosed without opening
+# the Expo dashboard. Needs the repository secret EXPO_TOKEN; the token and the
+# account e-mail are never printed (logs of this public repo are public).
+on:
+  workflow_dispatch:
+    inputs:
+      build_id:
+        description: EAS build id (the last part of the "See logs" URL)
+        required: true
+      lines:
+        description: How many trailing log lines of the failing phase to show
+        default: '150'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Hide the Expo account email in logs (logs of this public repo are public)
+        run: |
+          email=$(npx eas-cli@latest whoami 2>/dev/null | grep -o '[^[:space:]]*@[^[:space:]]*' | head -1 || true)
+          if [ -n "$email" ]; then echo "::add-mask::$email"; fi
+      - name: Show the failing phase of the build log
+        env:
+          BUILD_ID: ${{ inputs.build_id }}
+          LINES: ${{ inputs.lines }}
+        run: |
+          [[ "$BUILD_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "Not a build id"; exit 1; }
+          [[ "$LINES" =~ ^[0-9]+$ ]] || LINES=150
+          npx eas-cli@latest build:view "$BUILD_ID" --json 2>/dev/null > build.json
+          jq '{status, platform, buildProfile, error, metrics, resourceClass, runtimeVersion}' build.json
+          : > build.log
+          for url in $(jq -r '.logFiles[]?' build.json); do curl -fsSL "$url" >> build.log; echo >> build.log; done
+          echo "Log lines: $(wc -l < build.log)"
+          # EAS logs are JSON lines: {"phase": "...", "msg": "..."}.
+          echo "::group::Phases (last line of each)"
+          jq -r 'select(.phase) | .phase' build.log 2>/dev/null | uniq -c
+          echo "::endgroup::"
+          phase=$(jq -r 'select(.phase and .marker == "END_PHASE" and .result == "fail") | .phase' build.log 2>/dev/null | tail -1)
+          [ -n "$phase" ] || phase=RUN_GRADLEW
+          echo "Failing phase: $phase"
+          echo "::group::Error lines in $phase"
+          jq -r --arg p "$phase" 'select(.phase == $p) | .msg // empty' build.log \
+            | grep -nE 'FAILURE|What went wrong|error:|Error:|Exception|OutOfMemory|Java heap|Metaspace|Killed|exit code|daemon disappeared|lmkd' | tail -80 || true
+          echo "::endgroup::"
+          echo "::group::Last $LINES lines of $phase"
+          jq -r --arg p "$phase" 'select(.phase == $p) | .msg // empty' build.log | tail -n "$LINES"
+          echo "::endgroup::"
