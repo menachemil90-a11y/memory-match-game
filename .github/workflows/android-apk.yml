@@ -32,6 +32,11 @@ jobs:
       # Over-the-air updates published to the "preview" channel reach test APKs
       # (see app.config.js; EAS builds take their channel from eas.json).
       EXPO_UPDATES_CHANNEL: preview
+      # In-app "new version available" for test APKs (see app.config.js): the run
+      # number becomes the versionCode, and the app looks for newer test APKs in
+      # this repository's Releases.
+      APK_BUILD_NUMBER: ${{ github.run_number }}
+      APK_RELEASES_REPO: ${{ github.repository }}
       # Online play: the public Supabase URL + anon key come from the committed .env
       # (do not set them here — an empty variable would override .env).
       # Gradle memory, parallel workers and CPU architectures come from

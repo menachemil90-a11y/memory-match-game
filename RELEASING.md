@@ -2,10 +2,10 @@
 
 There are two ways to ship a change:
 
-| Change                                                                                            | Path                          | Store review? | Reaches players             |
-| ------------------------------------------------------------------------------------------------- | ----------------------------- | ------------- | --------------------------- |
-| JavaScript / images / sounds / text (most changes)                                                | **EAS Update** (over-the-air) | No            | Next app launch             |
-| Native changes: new native library, `app.json` permissions/plugins, Expo SDK upgrade, icon/splash | **EAS Build → store release** | Yes           | After review + store update |
+| Change                                                                                            | Path                          | Store review? | Reaches players                   |
+| ------------------------------------------------------------------------------------------------- | ----------------------------- | ------------- | --------------------------------- |
+| JavaScript / images / sounds / text (most changes)                                                | **EAS Update** (over-the-air) | No            | When the player taps "Update now" |
+| Native changes: new native library, `app.json` permissions/plugins, Expo SDK upgrade, icon/splash | **EAS Build → store release** | Yes           | After review + store update       |
 
 Rule of thumb: if `package.json` gained or upgraded a library with native code,
 or you touched `app.json`, it is a native change.
@@ -17,7 +17,7 @@ JavaScript they can't run.
 
 ### In plain words: what reaches phones over the air?
 
-**Over the air (no new APK, no store review — arrives the next time the app is opened):**
+**Over the air (no new APK, no store review — the app asks "Update available" and installs it when the player taps "Update now"):**
 anything written in JavaScript/TypeScript and the files it bundles — game rules and
 screens, layouts, animations (e.g. how the turn banner fades), texts and translations,
 colors and fonts, board pictures, sounds, bug fixes in all of these, and the Supabase
@@ -28,6 +28,24 @@ with native code, changing `app.json`/`app.config.js` settings that end up in th
 project (permissions, RTL support, icon, splash screen, app name, package id, plugins),
 and Expo SDK upgrades. Every such release bumps `version` in `app.json`, so phones with
 the old native code never receive JavaScript that needs the new one.
+
+### How players hear about updates (in the app)
+
+The app never updates silently (`updates.checkAutomatically: NEVER`). When it starts, and
+when it comes back to the foreground (at most once an hour), it checks and shows a dialog:
+
+- **Over-the-air update** → "Update available — Update now / Later". "Update now" downloads
+  it and restarts the app in a few seconds.
+- **New test APK** (test phones only: channel `preview`, GitHub-built) → "New version
+  available — Download / Later". "Download" opens the `.apk` from GitHub Releases in the
+  browser; the player opens the file to install it over the old one. The APK workflow's run
+  number is the APK's `versionCode`, and the app compares it with the newest
+  `apk-<version>-build<N>` release. Store builds never do this (Google Play forbids
+  self-updates outside the store); store users get new versions from Google Play.
+
+The dialog waits while a game is running (local or online room) and appears afterwards.
+"Later" is remembered until the app is restarted. Settings → Updates shows the version and
+build and has **Check for updates**.
 
 Channels: **`preview`** = test phones (GitHub test APKs and EAS `preview` builds),
 **`production`** = Google Play users. An update published to one channel never reaches

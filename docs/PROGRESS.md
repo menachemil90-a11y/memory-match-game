@@ -364,6 +364,7 @@ at most 3 parallel workers, phone ABIs only (arm64-v8a + armeabi-v7a). The workf
 every minute. Unit test checks the generated `gradle.properties` values.
 
 **Results after the memory fix (commit 7e561f2):**
+
 - **Test APK build 24 — success, 15 min of Gradle** (was killed before):
   release `apk-0.1.0-build24` (memory-match-0.1.0-7e561f2.apk, 84 MB). Verified: targetSdk 36,
   minSdk 24; 16 KB alignment OK (30 arm64 libraries); only `arm64-v8a` + `armeabi-v7a`; signed
@@ -380,3 +381,40 @@ every minute. Unit test checks the generated `gradle.properties` values.
   account). 2 of the 15 free monthly EAS Android builds used.
 
 `npm run check`: **192 Jest tests + 37 server tests** pass; Android export passes.
+
+## 11. Session log — in-app updates (session 4, cont.)
+
+Owner's request: an option to update from inside the app, and a notice for every new update
+"like any good app". Agreed choices (asked before starting): an **in-app dialog** (no push
+notifications — those would need a Firebase account and a sender), for **both**
+over-the-air updates and new test APKs, and **ask first** (no silent updates).
+
+- `app.json`: `updates.checkAutomatically: NEVER` (nothing downloads without consent) and
+  **version 0.2.0**. The bump is required: the feature adds a native module
+  (`expo-application`, to read the APK's build number), and with
+  `runtimeVersion: appVersion` old 0.1.0 builds must not receive JavaScript that needs it.
+  Consequence: build 24 (0.1.0) gets no more over-the-air updates — install the next APK.
+- `src/features/updates/`:
+  - `updatesStore.ts` (zustand): `check({manual})`, hourly `autoCheck()`, `install()`,
+    `dismiss()`. Over-the-air first (`Updates.checkForUpdateAsync`); otherwise, in test
+    builds only (channel `preview` + build number + releases repo), the newest GitHub
+    Release `apk-<version>-build<N>` vs the APK's `versionCode`. "Later" is remembered per
+    update until restart (a newer update asks again; a manual check always shows it).
+    Failures are logged and shown in Settings, never silently dropped.
+  - `apkReleases.ts`: parses the GitHub releases list (drafts / other tags / no `.apk`
+    ignored; a non-list response is an error) and validates the repo name.
+  - `UpdatePrompt.tsx`: mounted in the root layout; checks at start and when the app comes
+    back; the dialog waits during a game (`/game`, online room) and appears afterwards.
+  - `UpdatesSection.tsx`: Settings → Updates: "Version 0.2.0 (build N)", the date of the
+    running over-the-air update, status line, **Check for updates** / **Show update**.
+- `app.config.js` + workflows: the APK workflow sets `APK_BUILD_NUMBER` (run number →
+  Android `versionCode`) and `APK_RELEASES_REPO` (`github.repository`, so the repo name is
+  not committed); the EAS Update workflow passes the repo too, so the check keeps working
+  after an over-the-air update. EAS builds don't get the repo, so they never offer APKs.
+- Google Play builds: no self-update (Play policy); Play updates them. Optional later:
+  Play "in-app updates" (needs a native library) — to decide before the store launch.
+- Tests: release parsing, the store (OTA / APK / up to date / store builds never look for
+  APKs / failures / hourly throttle / "Later" / install paths), and the real dialog and
+  Settings section (waits during a game, buttons). `npm run check`: **215 Jest + 37 server
+  tests** pass; Android export passes; a prebuild with the workflow's variables gives
+  `versionCode N`, `versionName 0.2.0`, `CHECK_ON_LAUNCH=NEVER`, channel `preview`.

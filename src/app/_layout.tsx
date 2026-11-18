@@ -13,6 +13,7 @@ import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { UpdatePrompt } from '@/features/updates/UpdatePrompt';
 import { initI18n } from '@/lib/i18n';
 import { initSound, setMusicWanted } from '@/lib/sound';
 import { palette } from '@/ui/theme';
@@ -59,6 +60,7 @@ export default function RootLayout() {
           <Stack.Screen name="game" options={{ gestureEnabled: false }} />
           <Stack.Screen name="results" options={{ animation: 'fade', gestureEnabled: false }} />
         </Stack>
+        <UpdatePrompt />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

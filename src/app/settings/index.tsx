@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { bestScoresRepo } from '@/features/game/bestScoresRepo';
 import { layoutHistoryRepo } from '@/features/game/layoutHistoryRepo';
 import { useSettingsStore, type FlipBackSpeed } from '@/features/settings/settingsStore';
+import { UpdatesSection } from '@/features/updates/UpdatesSection';
 import { APP_VERSION_LABEL } from '@/lib/appInfo';
 import { getDb } from '@/lib/db';
 import { feedback } from '@/lib/feedback';
@@ -114,6 +115,10 @@ export default function SettingsScreen() {
           disabled={resetDone}
           onPress={() => setConfirmReset(true)}
         />
+      </Section>
+
+      <Section title={t('updates.section')}>
+        <UpdatesSection />
       </Section>
 
       <Section title={t('settings.aboutSection')}>

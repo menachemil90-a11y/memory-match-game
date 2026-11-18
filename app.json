@@ -2,7 +2,7 @@
   "expo": {
     "name": "Memory Match",
     "slug": "memory-match-game",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "scheme": "memorymatch",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -84,7 +84,7 @@
     "updates": {
       "url": "https://u.expo.dev/5b0d0ba0-eb49-40c4-8881-b13daffe2533",
       "enabled": true,
-      "checkAutomatically": "ON_LOAD",
+      "checkAutomatically": "NEVER",
       "fallbackToCacheTimeout": 0
     },
     "description": "A family memory game where you can make boards from your own photos.",

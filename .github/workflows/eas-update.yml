@@ -20,6 +20,9 @@ jobs:
     timeout-minutes: 30
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      # Keeps the in-app test-APK update check working after an over-the-air
+      # update (the update carries the app config; see app.config.js).
+      APK_RELEASES_REPO: ${{ github.repository }}
       # Online play: the public Supabase URL + anon key come from the committed .env
       # (do not set them here — an empty variable would override .env).
     steps:

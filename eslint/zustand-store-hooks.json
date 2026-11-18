@@ -1,1 +1,8 @@
-["useCustomBoards", "useGameSession", "useOnline", "usePlayersStore", "useSettingsStore"]
+[
+  "useCustomBoards",
+  "useGameSession",
+  "useOnline",
+  "usePlayersStore",
+  "useSettingsStore",
+  "useUpdatesStore"
+]

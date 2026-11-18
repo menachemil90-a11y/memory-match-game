@@ -1,6 +1,6 @@
 {
   "name": "memory-match-game",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo-google-fonts/fredoka": "^0.4.1",
@@ -8,6 +8,7 @@
     "@shopify/react-native-skia": "2.14.0",
     "@supabase/supabase-js": "^2.119.0",
     "expo": "~58.0.25",
+    "expo-application": "~58.1.2",
     "expo-audio": "~58.0.12",
     "expo-clipboard": "~58.0.4",
     "expo-constants": "~58.0.16",
