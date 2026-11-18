@@ -418,3 +418,15 @@ over-the-air updates and new test APKs, and **ask first** (no silent updates).
   Settings section (waits during a game, buttons). `npm run check`: **215 Jest + 37 server
   tests** pass; Android export passes; a prebuild with the workflow's variables gives
   `versionCode N`, `versionName 0.2.0`, `CHECK_ON_LAUNCH=NEVER`, channel `preview`.
+- **Build 27 failed** in `npm run test:server`: the random server-parity test could run past
+  its step limit on the medium board (flaky, unrelated to updates). Another session fixed the
+  test at the root (`8c867c3`: after 400 random steps the game is played out) together with
+  a popup-spring fix (`4d051b1`).
+- **Build 28 — success** (release `apk-0.2.0-build28`). Verified: `versionCode 28`,
+  `versionName 0.2.0`, same test certificate as builds 10/24 (installs over them, boards
+  kept), `EXPO_UPDATES_CHECK_ON_LAUNCH=NEVER`, channel `preview`, `apkReleasesRepo` in the
+  embedded app config, 16 KB OK, arm64-v8a + armeabi-v7a, no tap sound. It showed one new
+  permission from `expo-application` (Play install-referrer service, unused) — now in
+  `blockedPermissions` (verified in a prebuild; ships with the next APK).
+- Build 24 (0.1.0) can't get 0.2.0 over the air: install build 28 once by hand; from then on
+  new APKs and over-the-air updates are offered inside the app.
