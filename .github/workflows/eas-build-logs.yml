@@ -46,10 +46,16 @@ jobs:
           npx eas-cli@latest build:view "$BUILD_ID" --json > build.json
           jq '{status, platform, buildProfile, error, metrics, resourceClass, runtimeVersion}' build.json
           : > build.log
-          for url in $(jq -r '.logFiles[]?' build.json); do curl -fsSL "$url" >> build.log; echo >> build.log; done
+          i=0
+          for url in $(jq -r '.logFiles[]?' build.json); do
+            i=$((i+1)); curl -fsSL --compressed -o "part$i" "$url"
+            # Log files may be stored gzip-compressed.
+            if gzip -t "part$i" 2>/dev/null; then gunzip -c "part$i" >> build.log; else cat "part$i" >> build.log; fi
+            echo >> build.log
+          done
           echo "Log lines: $(wc -l < build.log)"
           # Each line is either JSON ({"phase": "...", "msg": "..."}) or plain text.
-          jq -Rr 'fromjson? // {msg: .} | [(.phase // ""), (.msg // "")] | join(" | ")' build.log > build.txt
+          jq -Rr '((fromjson? | objects) // {msg: .}) | [(.phase // ""), (.msg // "")] | join(" | ")' build.log > build.txt
           echo "::group::Error lines"
           grep -nE 'FAILURE|What went wrong|error:|Error:|Exception|OutOfMemory|Java heap|Metaspace|Killed|exit code|daemon disappeared|lmkd' build.txt | tail -80 || true
           echo "::endgroup::"
