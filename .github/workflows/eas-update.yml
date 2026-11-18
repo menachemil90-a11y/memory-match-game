@@ -29,6 +29,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Hide the Expo account email in logs (logs of this public repo are public)
+        run: |
+          email=$(npx eas-cli@latest whoami 2>/dev/null | grep -o '[^[:space:]]*@[^[:space:]]*' | head -1 || true)
+          if [ -n "$email" ]; then echo "::add-mask::$email"; fi
       - run: npm run check
       - name: Publish update
         env:

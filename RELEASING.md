@@ -15,6 +15,24 @@ only reaches builds with the **same `version`** in `app.json`. Bump `version`
 for every native release (e.g. `0.1.0` → `0.2.0`) so old builds never receive
 JavaScript they can't run.
 
+### In plain words: what reaches phones over the air?
+
+**Over the air (no new APK, no store review — arrives the next time the app is opened):**
+anything written in JavaScript/TypeScript and the files it bundles — game rules and
+screens, layouts, animations (e.g. how the turn banner fades), texts and translations,
+colors and fonts, board pictures, sounds, bug fixes in all of these, and the Supabase
+URL/key in `.env`.
+
+**Needs a new APK / store version:** anything native — adding or upgrading a library
+with native code, changing `app.json`/`app.config.js` settings that end up in the native
+project (permissions, RTL support, icon, splash screen, app name, package id, plugins),
+and Expo SDK upgrades. Every such release bumps `version` in `app.json`, so phones with
+the old native code never receive JavaScript that needs the new one.
+
+Channels: **`preview`** = test phones (GitHub test APKs and EAS `preview` builds),
+**`production`** = Google Play users. An update published to one channel never reaches
+the other.
+
 ---
 
 ## One-time setup

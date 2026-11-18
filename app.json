@@ -81,11 +81,17 @@
       "policy": "appVersion"
     },
     "updates": {
+      "url": "https://u.expo.dev/5b0d0ba0-eb49-40c4-8881-b13daffe2533",
       "enabled": true,
       "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 0
     },
     "description": "A family memory game where you can make boards from your own photos.",
-    "primaryColor": "#5B3FD9"
+    "primaryColor": "#5B3FD9",
+    "extra": {
+      "eas": {
+        "projectId": "5b0d0ba0-eb49-40c4-8881-b13daffe2533"
+      }
+    }
   }
 }

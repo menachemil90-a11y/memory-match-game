@@ -29,6 +29,9 @@ jobs:
       # NODE_ENV=production is set only on the build steps below: at job level it
       # would make `npm ci` skip devDependencies and break `npm run check`.
       EXPO_NO_TELEMETRY: '1'
+      # Over-the-air updates published to the "preview" channel reach test APKs
+      # (see app.config.js; EAS builds take their channel from eas.json).
+      EXPO_UPDATES_CHANNEL: preview
       # Online play: the public Supabase URL + anon key come from the committed .env
       # (do not set them here — an empty variable would override .env).
       GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=1g" -Dorg.gradle.workers.max=4

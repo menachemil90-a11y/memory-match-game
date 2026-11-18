@@ -18,6 +18,10 @@ on:
         description: Upload to the store after building (true/false)
         default: 'false'
         required: true
+      wait:
+        description: Wait for the build to finish and fail this run if it fails (true/false)
+        default: 'false'
+        required: true
 
 jobs:
   build:
@@ -34,13 +38,19 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Hide the Expo account email in logs (logs of this public repo are public)
+        run: |
+          email=$(npx eas-cli@latest whoami 2>/dev/null | grep -o '[^[:space:]]*@[^[:space:]]*' | head -1 || true)
+          if [ -n "$email" ]; then echo "::add-mask::$email"; fi
       - run: npm run check
       - name: EAS build
         env:
           PLATFORM: ${{ inputs.platform }}
           PROFILE: ${{ inputs.profile }}
           SUBMIT: ${{ inputs.submit }}
+          WAIT: ${{ inputs.wait }}
         run: |
           EXTRA=""
           if [ "$SUBMIT" = "true" ]; then EXTRA="--auto-submit"; fi
-          npx eas-cli@latest build --non-interactive --no-wait --platform "$PLATFORM" --profile "$PROFILE" $EXTRA
+          if [ "$WAIT" = "true" ]; then EXTRA="$EXTRA --wait"; else EXTRA="$EXTRA --no-wait"; fi
+          npx eas-cli@latest build --non-interactive --platform "$PLATFORM" --profile "$PROFILE" $EXTRA
