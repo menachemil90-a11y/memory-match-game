@@ -2,18 +2,19 @@ import { Image } from 'expo-image';
 import { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withSequence,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
 import { AVATAR_SOURCES } from '@/features/boards/builtin';
 import { playerColor, type PlayerProfile } from '@/features/players/playersStore';
 import { AppText } from '@/ui/components';
-import { colors, radii, shadows, spacing } from '@/ui/theme';
+import { popTo } from '@/ui/animation/pop';
+import { colors, motion, radii, shadows, spacing } from '@/ui/theme';
 
 export interface TurnBannerProps {
   /** The banner plays whenever this changes while `enabled`. */
@@ -25,7 +26,14 @@ export interface TurnBannerProps {
   reduceMotion: boolean;
 }
 
-/** "Noa's turn!" pop-up shown when the turn passes (pointer-transparent). */
+/** Total time the banner is on screen (ms) — shown, then gone by itself. */
+export const TURN_BANNER_MS = motion.turnBanner.in + motion.turnBanner.hold + motion.turnBanner.out;
+
+/**
+ * "Noa's turn!" pop-up shown when the turn passes: pops in, stays briefly, then
+ * fades out and drifts up by itself. Every step is timed (no spring), so it is
+ * always gone after TURN_BANNER_MS. Pointer-transparent: taps reach the cards.
+ */
 export function TurnBanner({
   playerIndex,
   enabled,
@@ -39,19 +47,25 @@ export function TurnBanner({
 
   useEffect(() => {
     if (!enabled) return;
+    const { in: enter, hold, out } = motion.turnBanner;
     show.set(
       withSequence(
-        reduceMotion
-          ? withTiming(1, { duration: 1 })
-          : withSpring(1, { damping: 12, stiffness: 200 }),
-        withDelay(950, withTiming(0, { duration: 220 })),
+        reduceMotion ? withTiming(1, { duration: 1 }) : popTo(1, enter),
+        withDelay(
+          reduceMotion ? enter + hold : hold,
+          withTiming(0, { duration: reduceMotion ? 1 : out, easing: Easing.in(Easing.quad) }),
+        ),
       ),
     );
   }, [playerIndex, enabled, reduceMotion, show]);
 
   const style = useAnimatedStyle(() => ({
     opacity: Math.min(1, show.value * 1.5),
-    transform: [{ rotate: rotated ? '180deg' : '0deg' }, { scale: 0.6 + show.value * 0.4 }],
+    transform: [
+      { rotate: rotated ? '180deg' : '0deg' },
+      { translateY: (1 - Math.min(1, show.value)) * -24 },
+      { scale: 0.6 + show.value * 0.4 },
+    ],
   }));
 
   return (

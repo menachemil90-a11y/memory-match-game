@@ -18,8 +18,8 @@ function safe(promise: Promise<void>): void {
  * Respects the user's sound and haptics toggles.
  */
 export const feedback = {
+  /** Menu/button taps: a light vibration only — no sound (it was annoying). */
   tap(): void {
-    playSound('tap');
     if (hapticsOn()) safe(Haptics.selectionAsync());
   },
   deal(): void {

@@ -3,6 +3,7 @@ const { defineConfig } = require('eslint/config');
 const expoConfig = require('eslint-config-expo/flat');
 const eslintPluginPrettierRecommended = require('eslint-plugin-prettier/recommended');
 
+const { animationRestrictions } = require('./eslint/animation-rules');
 const { storeSelectorRestrictions } = require('./eslint/store-selectors');
 
 module.exports = defineConfig([
@@ -32,7 +33,7 @@ module.exports = defineConfig([
           message: 'Use the crypto-secure RNG in src/game (expo-crypto) instead of Math.random.',
         },
       ],
-      'no-restricted-syntax': ['error', ...storeSelectorRestrictions],
+      'no-restricted-syntax': ['error', ...storeSelectorRestrictions, ...animationRestrictions],
     },
   },
   {

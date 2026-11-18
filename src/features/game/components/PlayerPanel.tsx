@@ -5,7 +5,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSequence,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
@@ -14,7 +13,8 @@ import { AVATAR_SOURCES } from '@/features/boards/builtin';
 import type { BoardImage } from '@/features/boards/types';
 import { playerColor, type PlayerProfile } from '@/features/players/playersStore';
 import { AppText, TurnTimerRing } from '@/ui/components';
-import { colors, fonts, palette, radii, spacing } from '@/ui/theme';
+import { popTo } from '@/ui/animation/pop';
+import { colors, fonts, motion, palette, radii, spacing } from '@/ui/theme';
 
 export interface PlayerPanelProps {
   profile: PlayerProfile;
@@ -56,12 +56,7 @@ export const PlayerPanel = memo(function PlayerPanel({
 
   useEffect(() => {
     if (count > 0 && !reduceMotion) {
-      bump.set(
-        withSequence(
-          withSpring(1.35, { damping: 6, stiffness: 320 }),
-          withSpring(1, { damping: 10, stiffness: 200 }),
-        ),
-      );
+      bump.set(withSequence(popTo(1.35, motion.pop), withTiming(1, { duration: motion.pop })));
     }
   }, [count, reduceMotion, bump]);
 

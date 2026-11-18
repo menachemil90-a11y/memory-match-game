@@ -3,9 +3,11 @@ import { AppState } from 'react-native';
 
 import { useSettingsStore } from '@/features/settings/settingsStore';
 
-/* Sound files are synthesized by scripts/synth-audio.mjs (our own, CC0). */
+/*
+ * Sound files are synthesized by scripts/synth-audio.mjs (our own, CC0).
+ * In-game sounds only: menu/button taps are silent by design (haptics only).
+ */
 const SOURCES = {
-  tap: require('../../assets/sounds/tap.wav') as number,
   flip: require('../../assets/sounds/flip.wav') as number,
   deal: require('../../assets/sounds/deal.wav') as number,
   match: require('../../assets/sounds/match.wav') as number,
@@ -18,9 +20,8 @@ const MUSIC = require('../../assets/sounds/music.m4a') as number;
 export type SoundEffect = keyof typeof SOURCES;
 
 /** Several players for sounds that can overlap (e.g. fast flips, deal ticks). */
-const POOL_SIZE: Partial<Record<SoundEffect, number>> = { flip: 2, deal: 3, tap: 2 };
+const POOL_SIZE: Partial<Record<SoundEffect, number>> = { flip: 2, deal: 3 };
 const VOLUME: Record<SoundEffect, number> = {
-  tap: 0.5,
   flip: 0.8,
   deal: 0.5,
   match: 0.9,

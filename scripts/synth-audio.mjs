@@ -98,11 +98,6 @@ function toWav(buf, peak = 0.9) {
 }
 
 const sounds = {
-  tap() {
-    const b = buffer(0.09);
-    tone(b, { freq: 900, to: 620, dur: 0.08, gain: 0.6, decay: 40, harmonics: [1, 0.2] });
-    return toWav(b, 0.6);
-  },
   flip() {
     const b = buffer(0.16);
     swish(b, { dur: 0.11, gain: 0.8, from: 0.6, to: 0.08 });

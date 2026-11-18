@@ -14,6 +14,7 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets';
 
 import type { BoardImage, ImageSource } from '@/features/boards/types';
+import { popTo } from '@/ui/animation/pop';
 import { colors, motion } from '@/ui/theme';
 
 export type CardEffect = 'none' | 'match' | 'mismatch';
@@ -130,10 +131,7 @@ function GameCardImpl({
       glow.set(withTiming(1, { duration: 180 }));
       if (!reduceMotion) {
         lift.set(
-          withSequence(
-            withSpring(1.16, { damping: 7, stiffness: 260 }),
-            withSpring(1.08, { damping: 10, stiffness: 200 }),
-          ),
+          withSequence(popTo(1.16, motion.pop), withTiming(1.08, { duration: motion.pop * 0.6 })),
         );
       }
     } else if (effect === 'mismatch') {
