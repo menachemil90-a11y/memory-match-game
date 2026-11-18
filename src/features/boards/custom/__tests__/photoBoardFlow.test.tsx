@@ -273,11 +273,17 @@ it('7. "add=1" opens the editor straight in "Add photos"', async () => {
   expect(theBoard().photos).toHaveLength(4);
 });
 
-it('8. the board picker shows an edit button on photo boards', async () => {
+it('8. the board picker shows photo boards like every board (no buttons); tap opens its levels', async () => {
   setParams({ mode: 'solo' });
   await renderScreen(<BoardPickerScreen />);
-  await press(`Edit ${FSI}משפחה שלנו${PDI}`);
-  expect(mockRouter.push).toHaveBeenCalledWith(`/my-boards/${theBoard().id}`);
+  // Editing lives inside the board (level screen "Edit board", step 6), not on the tile.
+  expect(screen.queryByLabelText(`Edit ${FSI}משפחה שלנו${PDI}`)).toBeNull();
+  expect(screen.queryByTestId('board-tile-actions')).toBeNull();
+  await pressEl(screen.getByLabelText(/^משפחה שלנו, /));
+  expect(mockRouter.push).toHaveBeenLastCalledWith({
+    pathname: '/levels',
+    params: { mode: 'solo', boardId: theBoard().id },
+  });
 });
 
 it('9. deletes the whole board from My Boards: confirmation, rows and files gone', async () => {

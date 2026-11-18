@@ -455,3 +455,9 @@ height of its neighbours. Checked on a web render with a Hebrew-named board (nam
 full) and one with two buttons. Regression tests: buttons are outside the picture area,
 built-in tiles have no bar, Create tile height matches. JavaScript-only → shipped over the
 air to `preview` (build 28 gets the "Update available" dialog).
+
+- **Follow-up (owner, after the update reached build 28):** no edit button on the board
+  picker at all — photo boards look like every other board there; editing is inside the
+  board (level screen → "Edit board"; long-press still opens the editor). The button bar
+  stays only on the My Boards management screen (edit + delete). Flow test step 8 now
+  checks the picker tile has no buttons and opens the board's levels. Shipped over the air.

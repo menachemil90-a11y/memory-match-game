@@ -10,7 +10,7 @@ import { CreateBoardTile } from '@/features/boards/components/CreateBoardTile';
 import type { Board } from '@/features/boards/types';
 import { BoardsLoadError } from '@/features/boards/components/BoardsLoadError';
 import { useCustomBoardsStatus, useCustomGameBoards } from '@/features/boards/useBoard';
-import { AppText, IconButton, Screen } from '@/ui/components';
+import { AppText, Screen } from '@/ui/components';
 import { colors, spacing } from '@/ui/theme';
 
 type PickerMode = 'solo' | 'local' | 'online';
@@ -58,11 +58,7 @@ export default function BoardPickerScreen() {
           {status === 'failed' ? <BoardsLoadError /> : null}
           <View style={styles.grid}>
             <Animated.View entering={FadeInDown.duration(300)}>
-              <CreateBoardTile
-                width={tileWidth}
-                withActions
-                onPress={() => router.push('/my-boards/new')}
-              />
+              <CreateBoardTile width={tileWidth} onPress={() => router.push('/my-boards/new')} />
             </Animated.View>
             {customBoards.map((board, i) => (
               <Animated.View key={board.id} entering={FadeInDown.delay((i + 1) * 40).duration(300)}>
@@ -71,14 +67,6 @@ export default function BoardPickerScreen() {
                   width={tileWidth}
                   onPress={() => open(board)}
                   onLongPress={() => router.push(`/my-boards/${board.id}`)}
-                  actions={
-                    <IconButton
-                      icon="pencil"
-                      size={40}
-                      accessibilityLabel={t('myBoards.editBoardNamed', { name: board.name ?? '' })}
-                      onPress={() => router.push(`/my-boards/${board.id}`)}
-                    />
-                  }
                 />
               </Animated.View>
             ))}
