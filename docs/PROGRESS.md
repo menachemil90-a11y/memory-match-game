@@ -363,4 +363,20 @@ at most 3 parallel workers, phone ABIs only (arm64-v8a + armeabi-v7a). The workf
 `GRADLE_OPTS`/`-PreactNativeArchitectures` overrides are gone; the APK workflow logs free memory
 every minute. Unit test checks the generated `gradle.properties` values.
 
+**Results after the memory fix (commit 7e561f2):**
+- **Test APK build 24 — success, 15 min of Gradle** (was killed before):
+  release `apk-0.1.0-build24` (memory-match-0.1.0-7e561f2.apk, 84 MB). Verified: targetSdk 36,
+  minSdk 24; 16 KB alignment OK (30 arm64 libraries); only `arm64-v8a` + `armeabi-v7a`; signed
+  with the **same test certificate as build 10** (installs over it, boards and photos kept);
+  `EXPO_UPDATE_URL` = the project's u.expo.dev URL and request header
+  `expo-channel-name: preview`; Supabase URL in the bundle; 6 sound effects + music, no
+  `tap.wav`. Contains all photo-board fixes, the turn-banner fade and the vibration-only taps.
+- **EAS cloud build (android, `preview`) — success, ~21 min** (`EAS release` workflow with
+  `wait=true`; the e-mail mask step ran before any EAS command). EAS created and keeps its own
+  Android keystore for this project, so an EAS-built APK is signed differently from the GitHub
+  test APKs and **cannot be installed over them** (Android would require uninstalling, which
+  deletes local boards). Test phones keep using the GitHub test APKs; store builds will use
+  EAS (Play App Signing re-signs them anyway). EAS Submit is still untested (needs the Play
+  account). 2 of the 15 free monthly EAS Android builds used.
+
 `npm run check`: **192 Jest tests + 37 server tests** pass; Android export passes.
