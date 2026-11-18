@@ -350,4 +350,17 @@ generator in `scripts/synth-audio.mjs` are deleted, so it can't be used by mista
 `@ts-expect-error` test proves `'tap'` is no longer a valid sound). In-game sounds (deal, flip,
 match, miss, turn, win) and the music are unchanged — tested.
 
-`npm run check`: **190 Jest tests + 37 server tests** pass; Android export passes.
+**Android builds ran out of memory (builds 12 and 15, and the first EAS cloud build).**
+Root cause, confirmed from the EAS log (new `EAS build logs` workflow prints a failed build's
+Gradle phase, e-mail masked): "Gradle build daemon disappeared unexpectedly (it may have been
+killed)" — on GitHub the same moment shows as "The runner has received a shutdown signal" (build
+15 died 6 min into Gradle; GitHub only marked it failed at the 60-min timeout). In both, Metro
+bundling, the Kotlin compiler daemon (a second multi-GB JVM) and parallel C++ builds ran at
+once on a 4-core / 16 GB machine; EAS also built the emulator-only x86/x86_64 code. Fixed at
+the source with one config plugin, `plugins/withAndroidBuildResources.js`, used by every build
+(EAS and GitHub): Kotlin compiles inside the Gradle process (no second JVM), Gradle heap 4 GB,
+at most 3 parallel workers, phone ABIs only (arm64-v8a + armeabi-v7a). The workflow-only
+`GRADLE_OPTS`/`-PreactNativeArchitectures` overrides are gone; the APK workflow logs free memory
+every minute. Unit test checks the generated `gradle.properties` values.
+
+`npm run check`: **192 Jest tests + 37 server tests** pass; Android export passes.

@@ -75,7 +75,8 @@
           "supportsRTL": false
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      "./plugins/withAndroidBuildResources"
     ],
     "runtimeVersion": {
       "policy": "appVersion"
