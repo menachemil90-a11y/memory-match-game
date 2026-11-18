@@ -418,10 +418,7 @@ over-the-air updates and new test APKs, and **ask first** (no silent updates).
   Settings section (waits during a game, buttons). `npm run check`: **215 Jest + 37 server
   tests** pass; Android export passes; a prebuild with the workflow's variables gives
   `versionCode N`, `versionName 0.2.0`, `CHECK_ON_LAUNCH=NEVER`, channel `preview`.
-- **Build 27 failed** in `npm run test:server`: the random server-parity test could run past
-  its step limit on the medium board (flaky, unrelated to updates). Another session fixed the
-  test at the root (`8c867c3`: after 400 random steps the game is played out) together with
-  a popup-spring fix (`4d051b1`).
+- **Build 27 failed** in `npm run test:server` (flaky test, unrelated to updates — see below).
 - **Build 28 — success** (release `apk-0.2.0-build28`). Verified: `versionCode 28`,
   `versionName 0.2.0`, same test certificate as builds 10/24 (installs over them, boards
   kept), `EXPO_UPDATES_CHECK_ON_LAUNCH=NEVER`, channel `preview`, `apkReleasesRepo` in the
@@ -430,3 +427,20 @@ over-the-air updates and new test APKs, and **ask first** (no silent updates).
   `blockedPermissions` (verified in a prebuild; ships with the next APK).
 - Build 24 (0.1.0) can't get 0.2.0 over the air: install build 28 once by hand; from then on
   new APKs and over-the-air updates are offered inside the app.
+
+### Done in a parallel session (included in build 28)
+
+- **Wobbling popups fixed at the root (`4d051b1`).** Reanimated 4 changed the default spring
+  to `{ damping: 120, stiffness: 900, mass: 4 }`. Partial spring configs written for the
+  Reanimated 3 defaults (`ZoomIn.springify().damping(14)`,
+  `withSpring(1, { damping: 7, stiffness: 180 })`, …) kept `mass: 4`, giving a damping ratio
+  of ~0.12: on the owner's recording the delete dialog swung between ~120 % and ~55 % of its
+  size (period ~0.43 s) for ~1.5 s. New `src/ui/animation/motion.ts` holds complete,
+  tested springs (damping ratio ≥ 0.7) and calm timed pop-ins; Dialog, results, online
+  results, stars, toggle, coin flip and card deal use them. Lint now rejects layout
+  `.springify()` and inline `withSpring` configs (tested), and a test checks the damping
+  ratio of every spring.
+- **Flaky server parity test fixed (`8c867c3`).** The randomized server-vs-engine game
+  sometimes ran past its 600-step limit on the medium board and ended in `resolving`, which
+  failed APK build 27. After 400 random steps the game is now played out with valid matching
+  moves, still checking server = engine after every step, so it always finishes.
