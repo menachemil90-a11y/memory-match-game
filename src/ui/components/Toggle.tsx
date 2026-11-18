@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { feedback } from '@/lib/feedback';
+import { springs } from '@/ui/animation/motion';
 import { colors, minTouchTarget, palette, radii, spacing } from '@/ui/theme';
 
 import { AppText } from './AppText';
@@ -31,9 +32,7 @@ export function Toggle({ label, description, value, onValueChange, tone = 'dark'
   const reduceMotion = useReducedMotion();
   const progress = useSharedValue(value ? 1 : 0);
   useEffect(() => {
-    progress.set(
-      reduceMotion ? (value ? 1 : 0) : withSpring(value ? 1 : 0, { damping: 15, stiffness: 220 }),
-    );
+    progress.set(reduceMotion ? (value ? 1 : 0) : withSpring(value ? 1 : 0, springs.toggle));
   }, [value, reduceMotion, progress]);
 
   const trackStyle = useAnimatedStyle(() => ({

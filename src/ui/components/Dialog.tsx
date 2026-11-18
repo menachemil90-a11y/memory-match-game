@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
+
+import { popupEntering } from '@/ui/animation/motion';
 
 import { colors, radii, shadows, spacing } from '@/ui/theme';
 
@@ -31,11 +33,7 @@ export function Dialog({ visible, title, message, onRequestClose, children }: Di
           accessibilityLabel={title}
           accessibilityRole="button"
         />
-        <Animated.View
-          entering={ZoomIn.springify().damping(14)}
-          style={styles.panel}
-          accessibilityViewIsModal
-        >
+        <Animated.View entering={popupEntering} style={styles.panel} accessibilityViewIsModal>
           <AppText variant="heading" align="center" accessibilityRole="header">
             {title}
           </AppText>

@@ -137,7 +137,6 @@ export const motion = {
   /** Delay between cards during the deal-in (ms). */
   dealStagger: 35,
   buttonPressDepth: 5,
-  spring: { damping: 14, stiffness: 220, mass: 0.8 },
   /**
    * "Noa's turn!" banner (ms): pop in, stay, fade out — ~1.4 s in total, so it
    * never sits on the board while the player is already choosing cards.

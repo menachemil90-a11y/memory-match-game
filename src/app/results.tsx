@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { Redirect, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 
 import { AVATAR_SOURCES } from '@/features/boards/builtin';
@@ -15,6 +15,7 @@ import { playerColor } from '@/features/players/playersStore';
 import { getOutcome, starRating, type SoloScore } from '@/game';
 import { getDb } from '@/lib/db';
 import { feedback } from '@/lib/feedback';
+import { heroEntering, newBestEntering } from '@/ui/animation/motion';
 import { AppText, Confetti, GameButton, Screen, StarRow } from '@/ui/components';
 import { colors, radii, shadows, spacing } from '@/ui/theme';
 
@@ -75,7 +76,7 @@ function SoloResults({ session }: { session: GameSession }) {
 
   return (
     <>
-      <Animated.View entering={ZoomIn.springify().damping(12)} style={styles.hero}>
+      <Animated.View entering={heroEntering} style={styles.hero}>
         <AppText
           variant="display"
           color={colors.textOnDark}
@@ -91,7 +92,7 @@ function SoloResults({ session }: { session: GameSession }) {
           accessibilityLabel={t('results.stars', { count: stars })}
         />
         {result?.isNewBest ? (
-          <Animated.View entering={ZoomIn.delay(1100).springify()} style={styles.newBest}>
+          <Animated.View entering={newBestEntering} style={styles.newBest}>
             <AppText variant="bodyStrong" color={colors.button.primary.text}>
               {t('results.newBest')}
             </AppText>
@@ -136,7 +137,7 @@ function VersusResults({ session }: { session: GameSession }) {
 
   return (
     <>
-      <Animated.View entering={ZoomIn.springify().damping(12)} style={styles.hero}>
+      <Animated.View entering={heroEntering} style={styles.hero}>
         {winner !== null ? (
           <View
             style={[

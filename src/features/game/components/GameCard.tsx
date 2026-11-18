@@ -14,6 +14,7 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets';
 
 import type { BoardImage, ImageSource } from '@/features/boards/types';
+import { springs } from '@/ui/animation/motion';
 import { popTo } from '@/ui/animation/pop';
 import { colors, motion } from '@/ui/theme';
 
@@ -85,7 +86,7 @@ function GameCardImpl({
   // Deal-in: from the deck to the card's slot, staggered.
   useEffect(() => {
     if (!dealIn) return;
-    const spring = { damping: 16, stiffness: 170, mass: 0.9 };
+    const spring = springs.deal;
     const d = dealIn.delay;
     if (reduceMotion) {
       flyX.set(0);

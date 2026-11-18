@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 
 import { AVATAR_SOURCES, type AvatarId } from '@/features/boards/builtin';
 import { feedback } from '@/lib/feedback';
+import { springs } from '@/ui/animation/motion';
 import { AppText } from '@/ui/components';
 import { colors, palette, shadows, spacing } from '@/ui/theme';
 
@@ -54,7 +55,7 @@ export function CoinFlip({ avatars, names, winner, onDone }: CoinFlipProps) {
     lift.set(
       withSequence(
         withTiming(-90, { duration: 700, easing: Easing.out(Easing.quad) }),
-        withSpring(0, { damping: 9 }),
+        withSpring(0, springs.settle),
       ),
     );
     spin.set(

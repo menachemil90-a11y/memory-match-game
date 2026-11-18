@@ -17,4 +17,26 @@ const animationRestrictions = [
   },
 ];
 
-module.exports = { animationRestrictions };
+/**
+ * Lint guard for spring settings (root cause of the wobbling dialogs).
+ *
+ * Reanimated 4's default spring is { damping: 120, stiffness: 900, mass: 4 }.
+ * A partial config (`.springify().damping(14)`, `withSpring(1, { damping: 7 })`)
+ * keeps the heavy default mass and ends up with a damping ratio of ~0.1: popups
+ * swung to ~120% / ~55% of their size for 1.5 s. Springs must come from the
+ * shared, tested settings in src/ui/animation/motion.ts.
+ */
+const springRestrictions = [
+  {
+    selector: "CallExpression[callee.property.name='springify']",
+    message:
+      'No layout springs: use popupEntering / heroEntering from @/ui/animation/motion (Reanimated 4 spring defaults make partial configs wobble).',
+  },
+  {
+    selector: "CallExpression[callee.name='withSpring'] > ObjectExpression",
+    message:
+      'Use a spring from springs.* in @/ui/animation/motion (complete, tested config). Inline partial configs inherit mass 4 and bounce.',
+  },
+];
+
+module.exports = { animationRestrictions, springRestrictions };

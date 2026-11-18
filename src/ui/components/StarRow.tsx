@@ -9,13 +9,14 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 
+import { springs } from '@/ui/animation/motion';
 import { palette, spacing } from '@/ui/theme';
 
 function Star({ filled, delay, size }: { filled: boolean; delay: number; size: number }) {
   const reduceMotion = useReducedMotion();
   const scale = useSharedValue(reduceMotion ? 1 : 0);
   useEffect(() => {
-    if (!reduceMotion) scale.set(withDelay(delay, withSpring(1, { damping: 7, stiffness: 180 })));
+    if (!reduceMotion) scale.set(withDelay(delay, withSpring(1, springs.settle)));
   }, [delay, reduceMotion, scale]);
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (

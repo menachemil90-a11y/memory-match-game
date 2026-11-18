@@ -2,12 +2,13 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { AVATAR_SOURCES, getBuiltinBoard } from '@/features/boards/builtin';
 import { feedback } from '@/lib/feedback';
+import { heroEntering } from '@/ui/animation/motion';
 import { AppText, Confetti, GameButton } from '@/ui/components';
 import { colors, palette, radii, shadows, spacing } from '@/ui/theme';
 
@@ -57,7 +58,7 @@ export function OnlineResults({ room, seat }: { room: RoomRow; seat: Seat }) {
           { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom + spacing.xl },
         ]}
       >
-        <Animated.View entering={ZoomIn.springify().damping(12)} style={styles.hero}>
+        <Animated.View entering={heroEntering} style={styles.hero}>
           <AppText
             variant="display"
             color={colors.textOnDark}
