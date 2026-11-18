@@ -103,7 +103,7 @@ The step-by-step plan to launch is **`docs/RELEASE_PLAN.md`** (dates, who does w
 2. ~~Supabase project~~ — **live**: `memory-match` (`idarczmhhhkazbuewwao`, eu-central-1, free plan), migrations 1–4 applied by the owner, anonymous sign-ins **on** — all verified read-only (2026-11-18). **Still open: owner to paste migration 05** (grant hardening) in the SQL Editor — re-checked: not applied yet.
 3. **Final app name and package ID** — still placeholders (`Memory Match`, `com.placeholder.memorymatch`, scheme `memorymatch`). Owner gives them before the first upload (target Dec 1); the package can never change.
 4. **Privacy policy hosting** — text ready (`docs/PRIVACY_POLICY.md`, placeholders only — the repo is public). Owner hosts it on Google Sites with name/email/date filled in there; then set `PRIVACY_POLICY_URL` in `src/lib/appInfo.ts`.
-5. **Expo account + access token** (via the secure credential form) → `eas init`, `eas update:configure`, first EAS preview APK + production AAB.
+5. ~~Expo account + token~~ — **done**: owner's free Expo account, token in the GitHub secret `EXPO_TOKEN`; EAS project linked (`extra.eas.projectId` 5b0d0ba0-eb49-40c4-8881-b13daffe2533), over-the-air updates on (channel `preview` for test phones, `production` for Play).
 6. **Google Play developer account** — owner registering (personal, ~3 weeks, ≈ Dec 8). Then 14-day closed test with ≥ 12 testers (owner collects 15–20 Gmail addresses).
 7. **Photo-board screenshots** — 2 shots from the owner's phone (web can't import photos).
 8. **Optional:** tablet screenshots; a domain for https App Links; Hebrew/RTL; iOS ($99/year — ask first).
@@ -311,3 +311,43 @@ real screens**: create (blocked below 3) → rename/empty name → cover → re-
 below 3 with guidance → locked level → add=1 → edit from picker → delete from My Boards (rows +
 files gone) → delete from editor → play a full Tiny game on a photo board. No screen may log an
 error. `npm run check`: **176 Jest tests + 37 server tests** pass; Android export passes.
+
+## 10. Session log — EAS, over-the-air updates, turn banner, tap sound (session 4, cont.)
+
+**EAS / Expo.** `.github/workflows/eas-setup.yml` ran `eas init` with the `EXPO_TOKEN` secret
+(token never printed) → project `memory-match-game` created and linked; `app.json` now has
+`extra.eas.projectId` and `updates.url` (public values; no `owner` field committed).
+`app.config.js` bakes `expo-channel-name: preview` into the GitHub-built test APKs
+(`EXPO_UPDATES_CHANNEL` env in the APK workflow); EAS builds take the channel from `eas.json`.
+`runtimeVersion` = app version (0.1.0), so updates only reach builds with the same native code.
+First updates published to `preview` (runtime 0.1.0) via the EAS Update workflow. An EAS cloud
+build (android, `preview`, wait) was started to verify the build path (see below for result).
+EAS Submit can only be tested once the Play account and app exist.
+
+- **Incident:** the first setup run called `eas whoami`, which printed the account e-mail into
+  the (public) Actions log. The run's logs were deleted within minutes (verified: 404). All EAS
+  workflows now capture the e-mail without printing it and register it with `::add-mask::`
+  before any EAS command; `whoami` is no longer echoed.
+- **APK workflow fix:** concurrency moved from workflow level to the build job. A push without
+  `[apk]` starts a run whose job is skipped, but at workflow level that run cancelled the build
+  in progress (that is what cancelled build 13). Build 12 had failed in Gradle after 53 min
+  (logs expired); builds 15+ include all fixes.
+
+**Turn banner stuck in the middle (owner's recording).** Root cause: the fade-out was queued
+after `withSpring(1, { damping: 12, stiffness: 200 })` in a `withSequence`. Reanimated 4 marks a
+spring finished only when its energy ≤ 6e-9 of the start — for this spring ~1.6 s after it looks
+settled — so every banner covered the board for ~2.8 s, i.e. most of each 2-player turn. Fixed
+at the source: every step is timed — `popTo()` (Easing.back overshoot, fixed duration) → hold →
+450 ms ease-in fade with a slight upward drift, ~1.4 s total (`motion.turnBanner` tokens), still
+pointer-transparent. The same bug class made the match "pop" and the pile-counter bump stay
+enlarged; both now use `popTo()`. New lint rule (`eslint/animation-rules.js`, tested): a
+`withSpring` may only be the last step of a `withSequence`. Tests: banner timing bounds and
+that it never intercepts card presses. Applies to local 2-player and online games.
+
+**Menu tap sound removed.** `feedback.tap()` now only does the light selection vibration
+(respects the Vibration setting). The `'tap'` sound id, `assets/sounds/tap.wav` and its
+generator in `scripts/synth-audio.mjs` are deleted, so it can't be used by mistake (a
+`@ts-expect-error` test proves `'tap'` is no longer a valid sound). In-game sounds (deal, flip,
+match, miss, turn, win) and the music are unchanged — tested.
+
+`npm run check`: **190 Jest tests + 37 server tests** pass; Android export passes.
