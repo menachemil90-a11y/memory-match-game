@@ -37,6 +37,7 @@ export interface LevelTileProps {
   availability: LevelAvailability;
   best?: SoloScore;
   showBest: boolean;
+  /** Also called for locked levels: the screen explains how to unlock them. */
   onPress: () => void;
 }
 
@@ -55,7 +56,6 @@ export function LevelTile({ availability, best, showBest, onPress }: LevelTilePr
   return (
     <Pressable3D
       onPress={onPress}
-      disabled={locked}
       edgeColor={scheme.edge}
       radius={radii.xl}
       style={styles.wrapper}

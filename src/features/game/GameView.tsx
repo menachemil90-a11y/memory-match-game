@@ -384,7 +384,13 @@ export function GameView({ session }: { session: GameSession }) {
           accessible={false}
           importantForAccessibility="no"
         >
-          <View ref={gridRef} collapsable={false} style={styles.grid} onLayout={onGridLayout}>
+          <View
+            ref={gridRef}
+            collapsable={false}
+            style={styles.grid}
+            onLayout={onGridLayout}
+            testID="game-grid"
+          >
             {layout && stage !== 'loading'
               ? state.cards.map((card) => {
                   const pos = cardPosition(layout, state.cols, card.index);

@@ -4,12 +4,20 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { useBoard, useBoardName } from '@/features/boards/useBoard';
+import { BoardsLoadError } from '@/features/boards/components/BoardsLoadError';
+import { CUSTOM_BOARD_PREFIX } from '@/features/boards/custom/types';
+import { useBoard, useBoardName, useCustomBoardsStatus } from '@/features/boards/useBoard';
 import { bestScoresRepo } from '@/features/game/bestScoresRepo';
 import type { GameMode } from '@/features/game/gameSessionStore';
 import { startGame } from '@/features/game/startGame';
 import { usePlayersStore } from '@/features/players/playersStore';
-import { getLevelAvailability, type LevelId, type SoloScore } from '@/game';
+import {
+  getLevelAvailability,
+  MIN_BOARD_IMAGES,
+  type LevelAvailability,
+  type LevelId,
+  type SoloScore,
+} from '@/game';
 import { getDb } from '@/lib/db';
 import { AppText, Dialog, GameButton, Screen } from '@/ui/components';
 import { colors, radii, spacing } from '@/ui/theme';
@@ -24,6 +32,8 @@ export default function LevelPickerScreen() {
   const [best, setBest] = useState<Partial<Record<LevelId, SoloScore>>>({});
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [locked, setLocked] = useState<LevelAvailability | null>(null);
+  const customStatus = useCustomBoardsStatus();
 
   useFocusEffect(
     useCallback(() => {
@@ -32,7 +42,8 @@ export default function LevelPickerScreen() {
       void getDb()
         .then((db) => bestScoresRepo.forBoard(db, board.id))
         .then((scores) => active && setBest(scores))
-        .catch(() => undefined);
+        // Best stars are decoration: the levels stay playable; the error is logged.
+        .catch((e: unknown) => console.error('Loading best scores failed', e));
       return () => {
         active = false;
       };
@@ -40,19 +51,45 @@ export default function LevelPickerScreen() {
   );
 
   if (!board) {
+    const isCustom = params.boardId?.startsWith(CUSTOM_BOARD_PREFIX) ?? false;
     return (
       <Screen title={t('levels.title')}>
-        <AppText variant="heading" color={colors.textOnDark} align="center">
-          {t('boards.notFound')}
-        </AppText>
+        {isCustom && customStatus === 'failed' ? (
+          <BoardsLoadError />
+        ) : (
+          <View style={styles.notFound}>
+            <AppText variant="heading" color={colors.textOnDark} align="center">
+              {isCustom && customStatus !== 'ready' ? t('common.loading') : t('boards.notFound')}
+            </AppText>
+            <GameButton
+              label={t('common.back')}
+              icon="arrow-back"
+              variant="secondary"
+              onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+            />
+          </View>
+        )}
       </Screen>
     );
   }
 
+  const isCustom = board.kind === 'custom';
+  const openEditor = (addPhotos: boolean) =>
+    router.push({
+      pathname: '/my-boards/[boardId]',
+      params: addPhotos ? { boardId: board.id, add: '1' } : { boardId: board.id },
+    });
+  const tooFew = isCustom && board.images.length < MIN_BOARD_IMAGES;
+
   const cover = board.images.find((i) => i.id === board.coverImageId) ?? board.images[0];
 
-  const choose = async (levelId: LevelId) => {
+  const choose = async (availability: LevelAvailability) => {
+    const levelId = availability.level.id;
     if (busy) return;
+    if (availability.locked) {
+      setLocked(availability);
+      return;
+    }
     if (mode === 'local') {
       router.push({ pathname: '/setup', params: { boardId: board.id, levelId } });
       return;
@@ -67,7 +104,8 @@ export default function LevelPickerScreen() {
         players: [{ ...local[0], name: '' }],
         tabletop: false,
       });
-    } catch {
+    } catch (e) {
+      console.error('Starting a game failed', e);
       setError(true);
     } finally {
       setBusy(false);
@@ -102,6 +140,31 @@ export default function LevelPickerScreen() {
           </AppText>
         </View>
       </View>
+      {tooFew ? (
+        <View style={styles.notice} accessibilityRole="alert">
+          <AppText variant="bodyStrong">{t('myBoards.tooFewTitle')}</AppText>
+          <AppText variant="body" color={colors.textMuted}>
+            {t('myBoards.notEnoughToPlay', { count: MIN_BOARD_IMAGES - board.images.length })}
+          </AppText>
+          <GameButton
+            label={t('levels.addPhotos')}
+            icon="add"
+            variant="success"
+            size="md"
+            onPress={() => openEditor(true)}
+          />
+        </View>
+      ) : null}
+      {isCustom ? (
+        <GameButton
+          label={t('levels.editBoard')}
+          icon="pencil"
+          variant="secondary"
+          size="md"
+          onPress={() => openEditor(false)}
+          style={styles.edit}
+        />
+      ) : null}
       <View style={styles.grid}>
         {getLevelAvailability(board.images.length).map((a) => (
           <LevelTile
@@ -109,10 +172,50 @@ export default function LevelPickerScreen() {
             availability={a}
             best={best[a.level.id]}
             showBest={mode === 'solo'}
-            onPress={() => void choose(a.level.id)}
+            onPress={() => void choose(a)}
           />
         ))}
       </View>
+      <Dialog
+        visible={locked !== null}
+        title={
+          locked
+            ? t('levels.lockedTitle', {
+                level: t(`levels.names.${locked.level.id}`),
+                pairs: locked.level.pairs,
+              })
+            : ''
+        }
+        message={
+          locked
+            ? t('levels.lockedMessage', {
+                have: board.images.length,
+                count: locked.missingImages,
+                level: t(`levels.names.${locked.level.id}`),
+              })
+            : undefined
+        }
+        onRequestClose={() => setLocked(null)}
+      >
+        {isCustom ? (
+          <GameButton
+            label={t('levels.addPhotos')}
+            icon="add"
+            variant="success"
+            size="md"
+            onPress={() => {
+              setLocked(null);
+              openEditor(true);
+            }}
+          />
+        ) : null}
+        <GameButton
+          label={t('common.cancel')}
+          variant="secondary"
+          size="md"
+          onPress={() => setLocked(null)}
+        />
+      </Dialog>
       <Dialog visible={error} title={t('game.loadError')} onRequestClose={() => setError(false)}>
         <GameButton label={t('common.ok')} size="md" onPress={() => setError(false)} />
       </Dialog>
@@ -139,5 +242,14 @@ const styles = StyleSheet.create({
   },
   coverArt: { width: 50, height: 50 },
   boardText: { flex: 1 },
+  notFound: { gap: spacing.lg },
+  notice: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    padding: spacing.lg,
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  edit: { marginBottom: spacing.lg },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
 });

@@ -43,6 +43,8 @@ export const colors = {
   border: palette.mist,
   focus: palette.sun,
   overlay: 'rgba(30, 18, 80, 0.55)',
+  /** Light green background for "all done" hints. */
+  successSoft: '#E2F8EE',
 
   card: {
     face: palette.white,

@@ -8,8 +8,9 @@ import { BUILTIN_BOARDS } from '@/features/boards/builtin';
 import { BoardTile } from '@/features/boards/components/BoardTile';
 import { CreateBoardTile } from '@/features/boards/components/CreateBoardTile';
 import type { Board } from '@/features/boards/types';
-import { useCustomGameBoards } from '@/features/boards/useBoard';
-import { AppText, Screen } from '@/ui/components';
+import { BoardsLoadError } from '@/features/boards/components/BoardsLoadError';
+import { useCustomBoardsStatus, useCustomGameBoards } from '@/features/boards/useBoard';
+import { AppText, IconButton, Screen } from '@/ui/components';
 import { colors, spacing } from '@/ui/theme';
 
 type PickerMode = 'solo' | 'local' | 'online';
@@ -32,6 +33,7 @@ export default function BoardPickerScreen() {
   const mode = parseMode(useLocalSearchParams<{ mode?: string }>().mode);
   const tileWidth = useTileWidth();
   const customBoards = useCustomGameBoards();
+  const status = useCustomBoardsStatus();
   const allowCustom = mode !== 'online';
 
   const open = (board: Board) => {
@@ -53,6 +55,7 @@ export default function BoardPickerScreen() {
       {allowCustom ? (
         <>
           {section(t('boards.customSection'))}
+          {status === 'failed' ? <BoardsLoadError /> : null}
           <View style={styles.grid}>
             <Animated.View entering={FadeInDown.duration(300)}>
               <CreateBoardTile width={tileWidth} onPress={() => router.push('/my-boards/new')} />
@@ -64,6 +67,14 @@ export default function BoardPickerScreen() {
                   width={tileWidth}
                   onPress={() => open(board)}
                   onLongPress={() => router.push(`/my-boards/${board.id}`)}
+                  actions={
+                    <IconButton
+                      icon="pencil"
+                      size={40}
+                      accessibilityLabel={t('myBoards.editBoardNamed', { name: board.name ?? '' })}
+                      onPress={() => router.push(`/my-boards/${board.id}`)}
+                    />
+                  }
                 />
               </Animated.View>
             ))}

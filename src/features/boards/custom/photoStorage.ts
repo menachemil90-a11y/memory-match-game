@@ -33,11 +33,7 @@ export function boardFileUri(boardId: string, name: string): string {
 }
 
 export function boardFileExists(boardId: string, name: string): boolean {
-  try {
-    return new File(Paths.document, 'boards', boardId, name).exists;
-  } catch {
-    return false;
-  }
+  return new File(Paths.document, 'boards', boardId, name).exists;
 }
 
 function ensureBoardDir(boardId: string): void {
@@ -133,32 +129,63 @@ export async function importPhoto(boardId: string, pickedUri: string): Promise<N
   };
 }
 
-function deleteQuietly(boardId: string, name: string): void {
-  try {
-    const f = new File(Paths.document, 'boards', boardId, name);
-    if (f.exists) f.delete();
-  } catch {
-    // Already gone — fine.
-  }
+/** Deletes a board file if it is there. Real I/O errors propagate to the caller. */
+function deleteIfExists(boardId: string, name: string): void {
+  const f = new File(Paths.document, 'boards', boardId, name);
+  if (f.exists) f.delete();
 }
 
 export function deleteCardFiles(boardId: string, files: { cardFile: string; thumbFile: string }) {
-  deleteQuietly(boardId, files.cardFile);
-  deleteQuietly(boardId, files.thumbFile);
+  deleteIfExists(boardId, files.cardFile);
+  deleteIfExists(boardId, files.thumbFile);
 }
 
 export function deletePhotoFiles(
   photo: Pick<PhotoRecord, 'boardId' | 'sourceFile' | 'cardFile' | 'thumbFile'>,
 ) {
-  deleteQuietly(photo.boardId, photo.sourceFile);
+  deleteIfExists(photo.boardId, photo.sourceFile);
   deleteCardFiles(photo.boardId, photo);
 }
 
+/** Removes a board's folder with every file in it. */
 export function deleteBoardFiles(boardId: string): void {
-  try {
-    const dir = boardDir(boardId);
-    if (dir.exists) dir.delete();
-  } catch {
-    // Nothing to clean up.
+  const dir = boardDir(boardId);
+  if (dir.exists) dir.delete();
+}
+
+type StoredFiles = Pick<PhotoRecord, 'sourceFile' | 'cardFile' | 'thumbFile'>;
+
+/**
+ * Deletes every file under the boards folder that no saved board/photo refers
+ * to: folders of deleted boards, files of deleted photos, old crop versions and
+ * half-written imports (e.g. the app was closed mid-way). Returns how many
+ * entries were removed. Must not run while photos are being imported.
+ */
+export function sweepOrphanFiles(
+  boards: readonly { id: string; photos: readonly StoredFiles[] }[],
+): number {
+  const root = boardsRoot();
+  if (!root.exists) return 0;
+  const keep = new Map(
+    boards.map((b) => [
+      b.id,
+      new Set(b.photos.flatMap((p) => [p.sourceFile, p.cardFile, p.thumbFile])),
+    ]),
+  );
+  let removed = 0;
+  for (const entry of root.list()) {
+    const files = keep.get(entry.name);
+    if (!(entry instanceof Directory) || !files) {
+      entry.delete();
+      removed++;
+      continue;
+    }
+    for (const file of entry.list()) {
+      if (!files.has(file.name)) {
+        file.delete();
+        removed++;
+      }
+    }
   }
+  return removed;
 }

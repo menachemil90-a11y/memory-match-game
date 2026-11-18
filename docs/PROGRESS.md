@@ -100,7 +100,7 @@ _Snapshot at the end of the first build session (all six phases of `docs/BRIEF.m
 The step-by-step plan to launch is **`docs/RELEASE_PLAN.md`** (dates, who does what).
 
 1. ~~GitHub Actions blocked~~ — resolved: repo is **public** for now (never commit secrets or personal data). The owner wants it **private again before launch** → builds move to EAS first (RELEASE_PLAN §10).
-2. ~~Supabase project~~ — **live**: `memory-match` (`idarczmhhhkazbuewwao`, eu-central-1, free plan), migrations 1–4 applied by the owner and verified read-only. **Owner to paste migration 05** (grant hardening) in the SQL Editor; owner enabling anonymous sign-ins (reported in progress).
+2. ~~Supabase project~~ — **live**: `memory-match` (`idarczmhhhkazbuewwao`, eu-central-1, free plan), migrations 1–4 applied by the owner, anonymous sign-ins **on** — all verified read-only (2026-11-18). **Still open: owner to paste migration 05** (grant hardening) in the SQL Editor — re-checked: not applied yet.
 3. **Final app name and package ID** — still placeholders (`Memory Match`, `com.placeholder.memorymatch`, scheme `memorymatch`). Owner gives them before the first upload (target Dec 1); the package can never change.
 4. **Privacy policy hosting** — text ready (`docs/PRIVACY_POLICY.md`, placeholders only — the repo is public). Owner hosts it on Google Sites with name/email/date filled in there; then set `PRIVACY_POLICY_URL` in `src/lib/appInfo.ts`.
 5. **Expo account + access token** (via the secure credential form) → `eas init`, `eas update:configure`, first EAS preview APK + production AAB.
@@ -247,3 +247,67 @@ about a month. Asked for: bug fixes + new APKs, all store material, `docs/RELEAS
   Aug 31, 2026), minSdk 24, all 30 arm64 native libraries **16 KB page-aligned**.
 - **`docs/RELEASE_PLAN.md`** written (first-timer guide, timeline, 12-tester rule, tester
   messages in English + Hebrew, personal vs organization, repo-private/EAS plan).
+
+## 9. Session log — device-test bug fixes (session 4, 2026-11-18)
+
+The owner tested build 12 on a phone and reported three bugs plus editing/deleting needs.
+Rule for this round: fix root causes, no error boundaries / try-catch / fallbacks that hide bugs.
+
+**Bug 1 — board editor froze (blank purple screen).** Root cause: the selector
+`useCustomBoards((s) => s.missing[boardId] ?? [])`. zustand v5 re-renders whenever a selector's
+result isn't `Object.is`-equal to the last one; `?? []` created a new array on every call for
+any board without missing photos, so every render scheduled another → "Maximum update depth
+exceeded". Reproduced first by a new render test of the real editor screen. Fixed at the source:
+
+- Store shape: missing-file state is now a `fileMissing` flag on each photo inside `boards`
+  (`CustomBoard`/`CustomPhoto`); the separate `missing` map (which needed defaults) is gone.
+  Every selector returns objects stored in the state. `load()` no longer mutates stored objects.
+- Audited all selectors (5 stores): the only other risky one was the editor's whole-store
+  subscription (replaced by action selectors).
+- Guard: ESLint rule (`eslint/store-selectors.js`) fails the build when a selector passed to a
+  store hook creates arrays/objects (literals, `?? []`, `map/filter/slice/…`, `new`, `Object.*`);
+  tests prove it rejects the original line and allows normal selectors; a registry test fails
+  if a new zustand store isn't covered. Plus the editor render test.
+- Removed error swallowing on the way: `load().catch(() => undefined)` (now `status: 'failed'` +
+  "Try again"), editor `act(…).catch(() => undefined)` (now an error dialog + log),
+  `deleteQuietly`/`boardFileExists` try/catch (real I/O errors now surface), level-screen catch
+  without the cause (now logged).
+
+**Bug 2 — photo board with < 3 photos was a dead end.**
+
+- New board screen: name + chosen photos (thumbnails, remove ✕); "Create board" only enabled with
+  ≥ 3; the store creates board + photos in one step and removes everything if fewer than 3 could
+  be imported (`NotEnoughPhotosError`) — a board can't be saved below the minimum.
+- Level picker for photo boards: "Edit board" button; a "needs more photos" card with "Add
+  photos"; tapping a locked level explains how many photos are missing and offers "Add photos"
+  (opens the editor straight in the add dialog).
+- Board picker: visible ✏️ edit button on every photo-board tile (long-press kept).
+
+**Bug 3 — Hebrew name shown wrong.** Findings: Fredoka _does_ contain Hebrew (47 glyphs, all
+weights); RN 0.88's Android layout sends Hebrew through full bidi (`BoringLayout` treats U+0590+
+as non-boring). Two real defects fixed: (1) `expo-localization` defaults to `supportsRTL: true`,
+so on a Hebrew-language phone the whole English, LTR-designed UI was mirrored → now
+`supportsRTL: false` (generated manifest verified: `android:supportsRtl="false"`); user text still
+gets its natural direction. (2) Names inserted into English sentences had no bidi isolation →
+custom i18next formatter `{{name, isolate}}` (U+2068/U+2069) on all 14 name placeholders, with a
+test that fails on any un-isolated `{{name}}`. The exact reversed-letters frame couldn't be
+reproduced off-device — **owner to re-check on build 13** (the RTL setting applies after the app
+is closed and reopened once).
+
+**Editing & deleting.** Editor: rename (empty names refused with a message), cover, re-crop, add
+photos (crop queue returns to the editor instead of stacking a second editor), delete photo with
+confirmation that warns when the board drops below 3, a "needs more photos" card, delete board
+(→ My Boards, no screen of the deleted board left). My Boards: ✏️ edit and 🗑 delete on every tile
+(shared confirmation dialog). Files: deletes remove source/card/thumbnail/folder; a sweep on every
+load removes anything on disk no board/photo refers to (interrupted deletes, half imports, old
+crop versions); all store changes wait for loading so the sweep can't race an import.
+
+**Tests.** Screen tests now possible: `@testing-library/react-native` 14 (+ `test-renderer`),
+`jest.setup.js` (expo-audio and Skia mocks), Reanimated's Jest resolver, `src/test-utils/renderScreen`.
+Shared native fakes (`nativeFakes.ts`: file system with `list()`, image manipulator with
+undecodable photos, crypto). New: editor render test; store tests (min photos, half-made board
+removal, file deletion, sweep, stable selectors, failed load); **11-step flow test through the
+real screens**: create (blocked below 3) → rename/empty name → cover → re-crop → add → delete
+below 3 with guidance → locked level → add=1 → edit from picker → delete from My Boards (rows +
+files gone) → delete from editor → play a full Tiny game on a photo board. No screen may log an
+error. `npm run check`: **176 Jest tests + 37 server tests** pass; Android export passes.

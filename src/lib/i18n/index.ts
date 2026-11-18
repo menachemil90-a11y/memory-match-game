@@ -15,6 +15,20 @@ export type SupportedLanguage = (typeof supportedLanguages)[number];
 
 let initialized = false;
 
+/** Unicode First Strong Isolate / Pop Directional Isolate. */
+const FSI = '\u2068';
+const PDI = '\u2069';
+
+/**
+ * Wraps text the user typed (board and player names) in a bidi isolate, so a
+ * Hebrew/Arabic name inside an English sentence keeps its own direction and
+ * can't reorder the punctuation or words around it ("Delete "משפחה"?").
+ * Every `{{name}}` in the translations must use `{{name, isolate}}` (tested).
+ */
+export function isolate(text: string): string {
+  return `${FSI}${text}${PDI}`;
+}
+
 export function initI18n(): typeof i18n {
   if (!initialized) {
     initialized = true;
@@ -28,6 +42,7 @@ export function initI18n(): typeof i18n {
       returnNull: false,
       initAsync: false,
     });
+    i18n.services.formatter?.add('isolate', (value: unknown) => isolate(String(value)));
   }
   return i18n;
 }

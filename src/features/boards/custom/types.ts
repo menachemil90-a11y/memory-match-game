@@ -28,3 +28,16 @@ export interface CustomBoardRecord {
 
 export const MAX_BOARD_NAME_LENGTH = 24;
 export const CUSTOM_BOARD_PREFIX = 'custom-';
+
+/**
+ * A photo as the app uses it: the stored record plus whether its files are on
+ * the device. Missing-file state lives on the photo itself so that screens can
+ * select a board with a plain lookup (stable references, no derived arrays).
+ */
+export interface CustomPhoto extends PhotoRecord {
+  fileMissing: boolean;
+}
+
+export interface CustomBoard extends Omit<CustomBoardRecord, 'photos'> {
+  photos: CustomPhoto[];
+}

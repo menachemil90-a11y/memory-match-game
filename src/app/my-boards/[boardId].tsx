@@ -6,10 +6,17 @@ import { Pressable, StyleSheet, TextInput, View, useWindowDimensions } from 'rea
 import { useTranslation } from 'react-i18next';
 
 import { CARD_BACK_IDS, CARD_BACK_SOURCES } from '@/features/boards/builtin';
-import { thumbUri, useCustomBoards } from '@/features/boards/custom/customBoardsStore';
-import { MAX_BOARD_NAME_LENGTH, type PhotoRecord } from '@/features/boards/custom/types';
+import { BoardsLoadError } from '@/features/boards/components/BoardsLoadError';
+import { ConfirmDeleteBoard } from '@/features/boards/custom/ConfirmDeleteBoard';
+import {
+  playablePhotos,
+  sanitizeBoardName,
+  thumbUri,
+  useCustomBoards,
+} from '@/features/boards/custom/customBoardsStore';
+import { MAX_BOARD_NAME_LENGTH, type CustomPhoto } from '@/features/boards/custom/types';
 import { useAddPhotos } from '@/features/boards/custom/useAddPhotos';
-import { useCustomBoardsLoaded } from '@/features/boards/useBoard';
+import { useCustomBoardsStatus } from '@/features/boards/useBoard';
 import { MAX_BOARD_IMAGES, MIN_BOARD_IMAGES, nextLockedLevel } from '@/game';
 import { feedback } from '@/lib/feedback';
 import { AppText, Dialog, GameButton, ProgressOverlay, Screen } from '@/ui/components';
@@ -26,14 +33,23 @@ import {
 
 const COLUMNS = 4;
 
-function NameField({ initial, onSave }: { initial: string; onSave: (name: string) => void }) {
+function NameField({
+  initial,
+  onSave,
+}: {
+  initial: string;
+  /** Returns false when the name was rejected (the field then shows the saved name again). */
+  onSave: (name: string) => boolean;
+}) {
   const { t } = useTranslation();
   const [name, setName] = useState(initial);
   return (
     <TextInput
       value={name}
       onChangeText={setName}
-      onEndEditing={() => onSave(name)}
+      onEndEditing={() => {
+        if (!onSave(name)) setName(initial);
+      }}
       maxLength={MAX_BOARD_NAME_LENGTH}
       accessibilityLabel={t('myBoards.nameLabel')}
       returnKeyType="done"
@@ -44,67 +60,94 @@ function NameField({ initial, onSave }: { initial: string; onSave: (name: string
 
 export default function BoardEditorScreen() {
   const { t } = useTranslation();
-  const { boardId = '' } = useLocalSearchParams<{ boardId?: string }>();
-  const loaded = useCustomBoardsLoaded();
+  const { boardId = '', add: openAdd } = useLocalSearchParams<{ boardId?: string; add?: string }>();
+  const status = useCustomBoardsStatus();
+  // Plain lookup: returns the board object stored in the state (stable reference).
   const board = useCustomBoards((s) => s.boards.find((b) => b.id === boardId));
-  const missingIds = useCustomBoards((s) => s.missing[boardId] ?? []);
-  const store = useCustomBoards();
+  const rename = useCustomBoards((s) => s.rename);
+  const setCardBack = useCustomBoards((s) => s.setCardBack);
+  const setCover = useCustomBoards((s) => s.setCover);
+  const movePhoto = useCustomBoards((s) => s.movePhoto);
+  const deletePhoto = useCustomBoards((s) => s.deletePhoto);
   const add = useAddPhotos();
   const { width } = useWindowDimensions();
-  const [selected, setSelected] = useState<PhotoRecord | null>(null);
-  const [confirmDeletePhoto, setConfirmDeletePhoto] = useState<PhotoRecord | null>(null);
+  const [selected, setSelected] = useState<CustomPhoto | null>(null);
+  const [confirmDeletePhoto, setConfirmDeletePhoto] = useState<CustomPhoto | null>(null);
   const [confirmDeleteBoard, setConfirmDeleteBoard] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(openAdd === '1');
+  const [error, setError] = useState<string | null>(null);
 
   if (!board) {
     return (
       <Screen title={t('myBoards.editorTitle')}>
-        <AppText variant="heading" color={colors.textOnDark} align="center">
-          {loaded ? t('boards.notFound') : t('common.loading')}
-        </AppText>
+        {status === 'failed' ? (
+          <BoardsLoadError />
+        ) : (
+          <AppText variant="heading" color={colors.textOnDark} align="center">
+            {status === 'ready' ? t('boards.notFound') : t('common.loading')}
+          </AppText>
+        )}
       </Screen>
     );
   }
 
   const photos = board.photos;
-  const playable = photos.filter((p) => !missingIds.includes(p.id));
+  const missingPhotos = photos.filter((p) => p.fileMissing);
+  const playable = playablePhotos(board);
+  const canPlay = playable.length >= MIN_BOARD_IMAGES;
   const tile = Math.floor(
     (Math.min(width, 640) - spacing.lg * 2 - spacing.sm * (COLUMNS - 1)) / COLUMNS,
   );
   const nextLock = nextLockedLevel(playable.length);
   const coverId = board.coverPhotoId ?? photos[0]?.id;
 
-  const unlockText = () => {
-    if (playable.length < MIN_BOARD_IMAGES) {
-      return t('myBoards.notEnoughToPlay', { count: MIN_BOARD_IMAGES - playable.length });
-    }
-    if (!nextLock) return t('myBoards.allUnlocked');
-    return t('levels.unlockHint', {
-      count: nextLock.missingImages,
-      level: t(`levels.names.${nextLock.level.id}`),
+  /** Runs a store change; failures are shown to the player (and logged), never dropped. */
+  const run = (fn: () => Promise<unknown>) => {
+    setSelected(null);
+    void fn().catch((e: unknown) => {
+      console.error('Editing a board failed', e);
+      setError(t('myBoards.saveFailed'));
     });
   };
 
-  const act = (fn: () => Promise<void>) => {
-    setSelected(null);
-    void fn().catch(() => undefined);
+  const saveName = (name: string): boolean => {
+    if (!sanitizeBoardName(name)) {
+      setError(t('myBoards.nameRequired'));
+      return false;
+    }
+    if (sanitizeBoardName(name) !== board.name) run(() => rename(board.id, name));
+    return true;
   };
+
+  const leftAfterDelete = (photo: CustomPhoto) => playable.length - (photo.fileMissing ? 0 : 1);
 
   return (
     <Screen title={t('myBoards.editorTitle')} scroll>
       <View style={styles.section}>
         <AppText variant="bodyStrong">{t('myBoards.nameLabel')}</AppText>
-        <NameField
-          key={board.id}
-          initial={board.name}
-          onSave={(n) => void store.rename(board.id, n)}
-        />
+        <NameField key={board.id} initial={board.name} onSave={saveName} />
       </View>
 
-      {missingIds.length > 0 ? (
+      {!canPlay ? (
+        <View style={[styles.section, styles.warning]} accessibilityRole="alert">
+          <AppText variant="bodyStrong">{t('myBoards.tooFewTitle')}</AppText>
+          <AppText variant="body" color={colors.textMuted}>
+            {t('myBoards.notEnoughToPlay', { count: MIN_BOARD_IMAGES - playable.length })}
+          </AppText>
+          <GameButton
+            label={t('myBoards.addPhotos')}
+            icon="add"
+            variant="success"
+            size="md"
+            onPress={() => setAddOpen(true)}
+          />
+        </View>
+      ) : null}
+
+      {missingPhotos.length > 0 ? (
         <View style={[styles.section, styles.warning]}>
           <AppText variant="bodyStrong">
-            {t('myBoards.missingTitle', { count: missingIds.length })}
+            {t('myBoards.missingTitle', { count: missingPhotos.length })}
           </AppText>
           <AppText variant="caption" color={colors.textMuted}>
             {t('myBoards.missingMessage')}
@@ -114,10 +157,8 @@ export default function BoardEditorScreen() {
             variant="danger"
             size="md"
             onPress={() =>
-              act(async () => {
-                for (const p of photos.filter((ph) => missingIds.includes(ph.id))) {
-                  await store.deletePhoto(p);
-                }
+              run(async () => {
+                for (const p of missingPhotos) await deletePhoto(p);
               })
             }
           />
@@ -131,48 +172,52 @@ export default function BoardEditorScreen() {
             {photos.length}/{MAX_BOARD_IMAGES}
           </AppText>
         </View>
-        <View style={[styles.hint, !nextLock && styles.hintDone]}>
-          <Ionicons
-            name={nextLock ? 'lock-open-outline' : 'trophy'}
-            size={18}
-            color={nextLock ? palette.grape : palette.mintDark}
-          />
-          <AppText variant="caption" color={colors.text} style={styles.flex}>
-            {unlockText()}
-          </AppText>
-        </View>
+        {canPlay ? (
+          <View style={[styles.hint, !nextLock && styles.hintDone]}>
+            <Ionicons
+              name={nextLock ? 'lock-open-outline' : 'trophy'}
+              size={18}
+              color={nextLock ? palette.grape : palette.mintDark}
+            />
+            <AppText variant="caption" color={colors.text} style={styles.flex}>
+              {nextLock
+                ? t('levels.unlockHint', {
+                    count: nextLock.missingImages,
+                    level: t(`levels.names.${nextLock.level.id}`),
+                  })
+                : t('myBoards.allUnlocked')}
+            </AppText>
+          </View>
+        ) : null}
         <View style={styles.grid}>
-          {photos.map((photo, i) => {
-            const missing = missingIds.includes(photo.id);
-            return (
-              <Pressable
-                key={photo.id}
-                onPress={() => {
-                  feedback.tap();
-                  setSelected(photo);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={`${t('myBoards.photoLabel', { n: i + 1 })}${photo.id === coverId ? `, ${t('myBoards.cover')}` : ''}`}
-                style={[styles.thumb, { width: tile, height: tile }]}
-              >
-                {missing ? (
-                  <Ionicons name="alert-circle" size={28} color={palette.coral} />
-                ) : (
-                  <Image
-                    source={{ uri: thumbUri(photo) }}
-                    style={StyleSheet.absoluteFill}
-                    contentFit="cover"
-                    transition={120}
-                  />
-                )}
-                {photo.id === coverId ? (
-                  <View style={styles.coverBadge}>
-                    <Ionicons name="star" size={12} color={palette.sunInk} />
-                  </View>
-                ) : null}
-              </Pressable>
-            );
-          })}
+          {photos.map((photo, i) => (
+            <Pressable
+              key={photo.id}
+              onPress={() => {
+                feedback.tap();
+                setSelected(photo);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`${t('myBoards.photoLabel', { n: i + 1 })}${photo.id === coverId ? `, ${t('myBoards.cover')}` : ''}`}
+              style={[styles.thumb, { width: tile, height: tile }]}
+            >
+              {photo.fileMissing ? (
+                <Ionicons name="alert-circle" size={28} color={palette.coral} />
+              ) : (
+                <Image
+                  source={{ uri: thumbUri(photo) }}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="cover"
+                  transition={120}
+                />
+              )}
+              {photo.id === coverId ? (
+                <View style={styles.coverBadge}>
+                  <Ionicons name="star" size={12} color={palette.sunInk} />
+                </View>
+              ) : null}
+            </Pressable>
+          ))}
           {photos.length < MAX_BOARD_IMAGES ? (
             <Pressable
               onPress={() => setAddOpen(true)}
@@ -196,7 +241,7 @@ export default function BoardEditorScreen() {
                 key={id}
                 onPress={() => {
                   feedback.tap();
-                  void store.setCardBack(board.id, id);
+                  run(() => setCardBack(board.id, id));
                 }}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: active }}
@@ -218,7 +263,7 @@ export default function BoardEditorScreen() {
         <GameButton
           label={t('myBoards.playSolo')}
           icon="person"
-          disabled={playable.length < MIN_BOARD_IMAGES}
+          disabled={!canPlay}
           onPress={() =>
             router.push({ pathname: '/levels', params: { mode: 'solo', boardId: board.id } })
           }
@@ -227,7 +272,7 @@ export default function BoardEditorScreen() {
           label={t('myBoards.playTwo')}
           icon="people"
           variant="danger"
-          disabled={playable.length < MIN_BOARD_IMAGES}
+          disabled={!canPlay}
           onPress={() =>
             router.push({ pathname: '/levels', params: { mode: 'local', boardId: board.id } })
           }
@@ -247,7 +292,7 @@ export default function BoardEditorScreen() {
         title={selected ? t('myBoards.photoActions', { n: photos.indexOf(selected) + 1 }) : ''}
         onRequestClose={() => setSelected(null)}
       >
-        {selected && !missingIds.includes(selected.id) ? (
+        {selected && !selected.fileMissing ? (
           <>
             <GameButton
               label={t('myBoards.recrop')}
@@ -262,13 +307,15 @@ export default function BoardEditorScreen() {
                 });
               }}
             />
-            <GameButton
-              label={t('myBoards.makeCover')}
-              icon="star"
-              variant="info"
-              size="md"
-              onPress={() => act(() => store.setCover(board.id, selected.id))}
-            />
+            {selected.id !== coverId ? (
+              <GameButton
+                label={t('myBoards.makeCover')}
+                icon="star"
+                variant="info"
+                size="md"
+                onPress={() => run(() => setCover(board.id, selected.id))}
+              />
+            ) : null}
           </>
         ) : null}
         {selected && photos.indexOf(selected) > 0 ? (
@@ -277,7 +324,7 @@ export default function BoardEditorScreen() {
             icon="arrow-back"
             variant="secondary"
             size="md"
-            onPress={() => act(() => store.movePhoto(board.id, selected.id, -1))}
+            onPress={() => run(() => movePhoto(board.id, selected.id, -1))}
           />
         ) : null}
         {selected && photos.indexOf(selected) < photos.length - 1 ? (
@@ -286,7 +333,7 @@ export default function BoardEditorScreen() {
             icon="arrow-forward"
             variant="secondary"
             size="md"
-            onPress={() => act(() => store.movePhoto(board.id, selected.id, 1))}
+            onPress={() => run(() => movePhoto(board.id, selected.id, 1))}
           />
         ) : null}
         <GameButton
@@ -304,6 +351,14 @@ export default function BoardEditorScreen() {
       <Dialog
         visible={confirmDeletePhoto !== null}
         title={t('myBoards.deletePhotoTitle')}
+        message={
+          confirmDeletePhoto && leftAfterDelete(confirmDeletePhoto) < MIN_BOARD_IMAGES
+            ? t('myBoards.deletePhotoLeaves', {
+                left: leftAfterDelete(confirmDeletePhoto),
+                count: MIN_BOARD_IMAGES - leftAfterDelete(confirmDeletePhoto),
+              })
+            : undefined
+        }
         onRequestClose={() => setConfirmDeletePhoto(null)}
       >
         <GameButton
@@ -314,38 +369,27 @@ export default function BoardEditorScreen() {
         />
         <GameButton
           label={t('common.delete')}
+          icon="trash"
           variant="danger"
           size="md"
+          testID="confirm-delete-photo"
           onPress={() => {
             const p = confirmDeletePhoto;
             setConfirmDeletePhoto(null);
-            if (p) void store.deletePhoto(p);
+            if (p) run(() => deletePhoto(p));
           }}
         />
       </Dialog>
 
-      <Dialog
-        visible={confirmDeleteBoard}
-        title={t('myBoards.deleteBoardTitle', { name: board.name })}
-        message={t('myBoards.deleteBoardMessage')}
-        onRequestClose={() => setConfirmDeleteBoard(false)}
-      >
-        <GameButton
-          label={t('common.cancel')}
-          variant="secondary"
-          size="md"
-          onPress={() => setConfirmDeleteBoard(false)}
-        />
-        <GameButton
-          label={t('common.delete')}
-          variant="danger"
-          size="md"
-          onPress={() => {
-            setConfirmDeleteBoard(false);
-            void store.deleteBoard(board.id).then(() => router.back());
-          }}
-        />
-      </Dialog>
+      <ConfirmDeleteBoard
+        board={confirmDeleteBoard ? board : null}
+        onClose={() => setConfirmDeleteBoard(false)}
+        onDeleted={() => {
+          // Leave every screen of the deleted board; show My Boards without it.
+          router.dismissAll();
+          router.push('/my-boards');
+        }}
+      />
 
       <Dialog
         visible={addOpen}
@@ -371,6 +415,12 @@ export default function BoardEditorScreen() {
             void add.run(board.id, photos.length, 'camera');
           }}
         />
+        <GameButton
+          label={t('common.cancel')}
+          variant="secondary"
+          size="md"
+          onPress={() => setAddOpen(false)}
+        />
       </Dialog>
 
       <ProgressOverlay
@@ -379,11 +429,21 @@ export default function BoardEditorScreen() {
         progress={add.progress ? add.progress.done / Math.max(1, add.progress.total) : null}
       />
       <Dialog
-        visible={add.message !== null}
-        title={add.message ?? ''}
-        onRequestClose={add.clearMessage}
+        visible={add.message !== null || error !== null}
+        title={add.message ?? error ?? ''}
+        onRequestClose={() => {
+          add.clearMessage();
+          setError(null);
+        }}
       >
-        <GameButton label={t('common.ok')} size="md" onPress={add.clearMessage} />
+        <GameButton
+          label={t('common.ok')}
+          size="md"
+          onPress={() => {
+            add.clearMessage();
+            setError(null);
+          }}
+        />
       </Dialog>
     </Screen>
   );
@@ -420,7 +480,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     padding: spacing.sm,
   },
-  hintDone: { backgroundColor: '#E2F8EE' },
+  hintDone: { backgroundColor: colors.successSoft },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   thumb: {
     borderRadius: radii.md,

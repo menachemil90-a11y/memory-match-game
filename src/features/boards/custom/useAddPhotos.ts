@@ -9,8 +9,9 @@ import { pickFromGallery, takePhoto } from './photoPicker';
 import { LowStorageError } from './photoStorage';
 
 /**
- * Shared "add photos" flow: pick (gallery or camera) → import with progress →
- * open the crop queue for the new photos.
+ * "Add photos" to an existing board: pick (gallery or camera) → import with
+ * progress → crop queue for the new photos, which returns to this screen.
+ * (New boards are created with their photos in one step: my-boards/new.)
  */
 export function useAddPhotos() {
   const { t } = useTranslation();
@@ -18,12 +19,7 @@ export function useAddPhotos() {
   const [progress, setProgress] = useState<ImportProgress | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const run = async (
-    boardId: string,
-    existing: number,
-    source: 'gallery' | 'camera',
-    { replace = false }: { replace?: boolean } = {},
-  ) => {
+  const run = async (boardId: string, existing: number, source: 'gallery' | 'camera') => {
     const room = MAX_BOARD_IMAGES - existing;
     if (room <= 0) {
       setMessage(t('myBoards.maxReached', { max: MAX_BOARD_IMAGES }));
@@ -41,16 +37,15 @@ export function useAddPhotos() {
       setProgress(null);
       if (failed > 0) setMessage(t('myBoards.importFailed', { count: failed }));
       if (addedIds.length > 0) {
-        const href = {
-          pathname: '/my-boards/crop' as const,
-          params: { boardId, ids: addedIds.join(',') },
-        };
-        if (replace) router.replace(href);
-        else router.push(href);
+        router.push({
+          pathname: '/my-boards/crop',
+          params: { boardId, ids: addedIds.join(','), returnTo: 'back' },
+        });
       }
       return addedIds.length > 0;
     } catch (error) {
       setProgress(null);
+      if (!(error instanceof LowStorageError)) console.error('Adding photos failed', error);
       setMessage(
         error instanceof LowStorageError ? t('myBoards.lowStorage') : t('myBoards.saveFailed'),
       );

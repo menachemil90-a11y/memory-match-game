@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -41,10 +42,12 @@ export interface BoardTileProps {
   width: number;
   onPress: () => void;
   onLongPress?: () => void;
+  /** Small buttons (edit, delete) shown on the tile's top-right corner. */
+  actions?: ReactNode;
 }
 
 /** A board "box": its card back as the lid with three fanned cards on top. */
-export function BoardTile({ board, width, onPress, onLongPress }: BoardTileProps) {
+export function BoardTile({ board, width, onPress, onLongPress, actions }: BoardTileProps) {
   const { t } = useTranslation();
   const name = useBoardName(board);
   const cover = board.images.find((i) => i.id === board.coverImageId) ?? board.images[0];
@@ -93,6 +96,7 @@ export function BoardTile({ board, width, onPress, onLongPress }: BoardTileProps
             </View>
           ))}
         </View>
+        {actions ? <View style={styles.actions}>{actions}</View> : null}
       </View>
       <View style={styles.label}>
         {/* Shrinks long names ("Yummy Food") on very narrow phones instead of cutting them. */}
@@ -125,4 +129,11 @@ const styles = StyleSheet.create({
     boxShadow: '0px 3px 6px rgba(30,18,80,0.3)',
   },
   label: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  actions: {
+    position: 'absolute',
+    top: spacing.xs,
+    right: spacing.xs,
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
 });

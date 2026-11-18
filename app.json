@@ -69,7 +69,12 @@
         }
       ],
       "expo-font",
-      "expo-localization",
+      [
+        "expo-localization",
+        {
+          "supportsRTL": false
+        }
+      ],
       "expo-sharing"
     ],
     "runtimeVersion": {
