@@ -29,6 +29,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+      # eas-cli reads the app config, which needs the project's packages.
+      - run: npm ci
       - name: Hide the Expo account email in logs (logs of this public repo are public)
         run: |
           email=$(npx eas-cli@latest whoami 2>/dev/null | grep -o '[^[:space:]]*@[^[:space:]]*' | head -1 || true)
@@ -40,7 +43,7 @@ jobs:
         run: |
           [[ "$BUILD_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "Not a build id"; exit 1; }
           [[ "$LINES" =~ ^[0-9]+$ ]] || LINES=150
-          npx eas-cli@latest build:view "$BUILD_ID" --json 2>/dev/null > build.json
+          npx eas-cli@latest build:view "$BUILD_ID" --json > build.json
           jq '{status, platform, buildProfile, error, metrics, resourceClass, runtimeVersion}' build.json
           : > build.log
           for url in $(jq -r '.logFiles[]?' build.json); do curl -fsSL "$url" >> build.log; echo >> build.log; done
