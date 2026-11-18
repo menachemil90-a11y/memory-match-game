@@ -48,17 +48,10 @@ jobs:
           : > build.log
           for url in $(jq -r '.logFiles[]?' build.json); do curl -fsSL "$url" >> build.log; echo >> build.log; done
           echo "Log lines: $(wc -l < build.log)"
-          # EAS logs are JSON lines: {"phase": "...", "msg": "..."}.
-          echo "::group::Phases (last line of each)"
-          jq -r 'select(.phase) | .phase' build.log 2>/dev/null | uniq -c
+          # Each line is either JSON ({"phase": "...", "msg": "..."}) or plain text.
+          jq -Rr 'fromjson? // {msg: .} | [(.phase // ""), (.msg // "")] | join(" | ")' build.log > build.txt
+          echo "::group::Error lines"
+          grep -nE 'FAILURE|What went wrong|error:|Error:|Exception|OutOfMemory|Java heap|Metaspace|Killed|exit code|daemon disappeared|lmkd' build.txt | tail -80 || true
           echo "::endgroup::"
-          phase=$(jq -r 'select(.phase and .marker == "END_PHASE" and .result == "fail") | .phase' build.log 2>/dev/null | tail -1)
-          [ -n "$phase" ] || phase=RUN_GRADLEW
-          echo "Failing phase: $phase"
-          echo "::group::Error lines in $phase"
-          jq -r --arg p "$phase" 'select(.phase == $p) | .msg // empty' build.log \
-            | grep -nE 'FAILURE|What went wrong|error:|Error:|Exception|OutOfMemory|Java heap|Metaspace|Killed|exit code|daemon disappeared|lmkd' | tail -80 || true
-          echo "::endgroup::"
-          echo "::group::Last $LINES lines of $phase"
-          jq -r --arg p "$phase" 'select(.phase == $p) | .msg // empty' build.log | tail -n "$LINES"
-          echo "::endgroup::"
+          echo "Last $LINES lines:"
+          tail -n "$LINES" build.txt
