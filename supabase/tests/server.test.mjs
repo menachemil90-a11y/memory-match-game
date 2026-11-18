@@ -317,11 +317,35 @@ describe('server rules = TypeScript engine (parity)', () => {
         });
         let r = room;
         const n = getLevel(levelId).pairs * 2;
-        for (let step = 0; step < 600 && g.phase !== 'finished'; step++) {
-          const roll = rng.nextInt(100);
+        // Random play first; after RANDOM_STEPS the game is played out with valid,
+        // matching moves so it always finishes (a random walk alone sometimes ran past
+        // the step limit on bigger boards and failed the build with 'resolving').
+        const RANDOM_STEPS = 400;
+        for (let step = 0; step < RANDOM_STEPS + 4 * n && g.phase !== 'finished'; step++) {
+          const forced = step >= RANDOM_STEPS;
+          const roll = forced ? -1 : rng.nextInt(100);
           let action;
           let call;
-          if (g.phase === 'resolving' && roll < 70) {
+          if (forced) {
+            if (g.phase === 'resolving') {
+              action = { type: 'resolve' };
+              await pastResolve(room.id);
+              call = () =>
+                server.rpc(uidFor(g.currentPlayer), 'public.resolve_turn', { p_room_id: room.id });
+            } else {
+              const down = g.cards.filter((c) => c.status === 'down');
+              const first = g.phase === 'awaitingSecond' ? g.cards[g.flipped[0]] : null;
+              const target = first ? down.find((c) => c.imageId === first.imageId) : down[0];
+              const index = target.index;
+              const player = g.currentPlayer;
+              action = { type: 'flip', index, player };
+              call = () =>
+                server.rpc(uidFor(player), 'public.flip_card', {
+                  p_room_id: room.id,
+                  p_index: index,
+                });
+            }
+          } else if (g.phase === 'resolving' && roll < 70) {
             action = { type: 'resolve' };
             await pastResolve(room.id);
             call = () =>
