@@ -248,7 +248,7 @@ const en = {
     copyCode: 'Copy code',
     copied: 'Copied!',
     inviteMessage:
-      "Let's play Memory Match together! Open the app, tap Play Online → Join a game and enter the code {{code}} — or open this link: {{link}}",
+      "Let's play Memory Match together! 🃏\nTap to join my game: {{link}}\nOr open the app → Play Online → Join a game, and enter the code {{code}}.",
     cancel: 'Cancel game',
     coinFlip: 'Who goes first?',
     starts: '{{name, isolate}} starts!',

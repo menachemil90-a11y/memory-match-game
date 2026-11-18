@@ -2,7 +2,13 @@
 import { OnlineError, toOnlineError } from '../errors';
 import { checkNickname } from '../nickname';
 import { isNewer, msUntil, opponentSilenceSeconds, seatOf, type RoomRow } from '../room';
-import { codeFromText, inviteLink, isValidRoomCode, normalizeRoomCode } from '../roomCode';
+import {
+  codeFromText,
+  inviteLink,
+  invitePageUrl,
+  isValidRoomCode,
+  normalizeRoomCode,
+} from '../roomCode';
 import { versionGte } from '../version';
 
 const room = (patch: Partial<RoomRow> = {}) =>
@@ -31,6 +37,20 @@ describe('room codes', () => {
     expect(codeFromText('code: hjkm23 see you')).toBe('HJKM23');
     expect(codeFromText('nothing here')).toBeNull();
     expect(inviteLink('memorymatch', 'XKCD42')).toBe('memorymatch://online/XKCD42');
+    expect(codeFromText('Tap: https://someone.github.io/memory-match-game/join/?c=xkcd42')).toBe(
+      'XKCD42',
+    );
+  });
+
+  it('invites with a tappable https link when the publish repo is known', () => {
+    // WhatsApp and most chat apps never make custom schemes (memorymatch://) tappable.
+    expect(inviteLink('memorymatch', 'XKCD42', 'Some-Owner/memory-match-game')).toBe(
+      'https://some-owner.github.io/memory-match-game/join/?c=XKCD42',
+    );
+    expect(inviteLink('memorymatch', 'XKCD42', null)).toBe('memorymatch://online/XKCD42');
+    expect(invitePageUrl('../etc')).toBeNull();
+    expect(invitePageUrl('owner/..')).toBeNull();
+    expect(invitePageUrl('owner')).toBeNull();
   });
 });
 

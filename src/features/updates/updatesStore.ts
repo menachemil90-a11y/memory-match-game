@@ -41,7 +41,8 @@ export function currentBuild(): number | null {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
-function releasesRepo(): string | null {
+/** "owner/name" where test APKs (and the invite page) are published, if known. */
+export function releasesRepo(): string | null {
   const repo = (Constants.expoConfig?.extra as Record<string, unknown> | undefined)
     ?.apkReleasesRepo;
   return isValidRepo(repo) ? repo : null;

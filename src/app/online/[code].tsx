@@ -21,6 +21,7 @@ import { useOnline } from '@/features/online/onlineStore';
 import { inviteLink, isValidRoomCode, normalizeRoomCode } from '@/features/online/roomCode';
 import { useOnlineError } from '@/features/online/useOnlineError';
 import { usePlayersStore } from '@/features/players/playersStore';
+import { releasesRepo } from '@/features/updates/updatesStore';
 import { AppText, Dialog, GameButton, ProgressOverlay, Screen } from '@/ui/components';
 import { colors, fonts, palette, radii, shadows, spacing } from '@/ui/theme';
 
@@ -93,7 +94,7 @@ export default function OnlineRoomScreen() {
   }
 
   if (inThisRoom && room.status === 'waiting') {
-    const link = inviteLink(APP_SCHEME, room.code);
+    const link = inviteLink(APP_SCHEME, room.code, releasesRepo());
     return (
       <Screen title={t('online.waitingTitle')} showBack={false}>
         <View style={styles.center}>

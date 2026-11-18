@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Join my Memory Match game!</title>
+    <meta property="og:title" content="Join my Memory Match game!" />
+    <meta property="og:description" content="Tap to play a family memory game with me." />
+    <!--
+      Invite page for online games. Chat apps (WhatsApp etc.) only make https:// links
+      tappable, so the app shares this page; the button below hands the room code to the
+      installed app through its memorymatch:// link. No tracking, no cookies, no personal data.
+    -->
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: ui-rounded, 'SF Pro Rounded', 'Nunito', system-ui, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: linear-gradient(180deg, #7b5cff 0%, #4f6dea 55%, #2f7fd6 100%);
+        color: #1f1a3d;
+      }
+      .card {
+        width: 100%;
+        max-width: 420px;
+        background: #fff;
+        border-radius: 28px;
+        padding: 28px 22px 24px;
+        text-align: center;
+        box-shadow: 0 12px 30px rgba(25, 10, 80, 0.28);
+      }
+      .cards {
+        font-size: 56px;
+        line-height: 1;
+      }
+      h1 {
+        margin: 12px 0 4px;
+        font-size: 26px;
+      }
+      p {
+        margin: 6px 0;
+        color: #5b5675;
+        font-size: 16px;
+        line-height: 1.45;
+      }
+      .code {
+        margin: 16px auto 18px;
+        display: inline-block;
+        letter-spacing: 6px;
+        font-size: 34px;
+        font-weight: 800;
+        background: #f2efff;
+        color: #4a2fd6;
+        padding: 10px 18px;
+        border-radius: 16px;
+      }
+      .btn {
+        display: block;
+        width: 100%;
+        margin-top: 12px;
+        padding: 16px;
+        border-radius: 999px;
+        font-size: 19px;
+        font-weight: 800;
+        text-decoration: none;
+        border: 0;
+      }
+      .primary {
+        background: #ffc93c;
+        color: #3d2a00;
+        box-shadow: 0 5px 0 #d99e12;
+      }
+      .secondary {
+        background: #3ddc97;
+        color: #063d27;
+        box-shadow: 0 5px 0 #23a86d;
+      }
+      .muted {
+        font-size: 14px;
+        margin-top: 18px;
+      }
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <div class="cards" aria-hidden="true">🃏🃏</div>
+      <h1>Join my Memory Match game!</h1>
+      <p id="lead">Tap the button to open the game and join.</p>
+      <div id="code" class="code hidden" aria-label="Room code"></div>
+      <a id="open" class="btn primary hidden" href="#">Open in Memory Match</a>
+      <div id="install">
+        <p class="muted" id="installText">
+          Don't have the game yet? Download it, then come back and tap “Open”.
+        </p>
+        <a id="download" class="btn secondary" href="#">Download for Android</a>
+      </div>
+      <p class="muted">Or open the app → Play Online → Join a game, and enter the code.</p>
+      <p class="hidden" id="iosNote"></p>
+    </main>
+    <script>
+      (function () {
+        var ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        var params = new URLSearchParams(location.search);
+        var raw = (params.get('c') || '').toUpperCase();
+        var code =
+          raw.length === 6 &&
+          raw.split('').every(function (ch) {
+            return ALPHABET.indexOf(ch) !== -1;
+          })
+            ? raw
+            : null;
+
+        // Where the test APKs live: this page is served from <owner>.github.io/<repo>/join/.
+        var owner = location.hostname.split('.')[0];
+        var repo = location.pathname.split('/').filter(Boolean)[0] || '';
+        document.getElementById('download').href =
+          'https://github.com/' + owner + '/' + repo + '/releases/latest';
+
+        var isAndroid = /Android/i.test(navigator.userAgent);
+        if (!isAndroid) {
+          var note = document.getElementById('iosNote');
+          note.textContent = 'Memory Match is available for Android phones for now.';
+          note.className = 'muted';
+        }
+
+        if (!code) {
+          document.getElementById('lead').textContent =
+            'This invite link is missing its room code. Ask your friend to send it again.';
+          return;
+        }
+        var codeEl = document.getElementById('code');
+        codeEl.textContent = code;
+        codeEl.className = 'code';
+
+        var deepLink = 'memorymatch://online/' + code;
+        var open = document.getElementById('open');
+        if (isAndroid) {
+          // Android intent link: opens the app if installed; otherwise Chrome comes back
+          // to this page with nf=1 and we highlight the download button.
+          var back = new URL(location.href);
+          back.searchParams.set('nf', '1');
+          open.href =
+            'intent://online/' +
+            code +
+            '#Intent;scheme=memorymatch;S.browser_fallback_url=' +
+            encodeURIComponent(back.toString()) +
+            ';end';
+        } else {
+          open.href = deepLink;
+        }
+        open.className = 'btn primary';
+
+        if (params.get('nf') === '1') {
+          document.getElementById('lead').textContent =
+            "Looks like Memory Match isn't installed yet.";
+          document.getElementById('installText').textContent =
+            'Download and install it, then come back to this message and tap the link again.';
+        }
+      })();
+    </script>
+  </body>
+</html>
