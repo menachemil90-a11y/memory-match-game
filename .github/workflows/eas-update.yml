@@ -13,6 +13,15 @@ on:
       message:
         description: What changed (shown in the EAS dashboard)
         required: true
+  # Called by release.yml for every app change pushed to main.
+  workflow_call:
+    inputs:
+      channel:
+        type: string
+        required: true
+      message:
+        type: string
+        required: true
 
 jobs:
   update:

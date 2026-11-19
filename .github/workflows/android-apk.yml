@@ -89,6 +89,25 @@ jobs:
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           ls -lh "$NAME"
 
+      - name: Check it installs over the app on the phones (same key, newer build)
+        # Android installs an update over the installed app (keeping boards and
+        # scores) only when it is signed with the same certificate and has a higher
+        # versionCode. Anything else would force testers to uninstall: never publish it.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/verify-apk.mjs "${{ steps.apk.outputs.name }}"
+          NEWEST=$(gh release list --limit 200 --json tagName --jq '[.[].tagName | capture("^apk-[0-9.]+-build(?<n>[0-9]+)$") | .n | tonumber] | max // 0')
+          echo "versionCode ${GITHUB_RUN_NUMBER}, newest published build ${NEWEST}"
+          if [ "$GITHUB_RUN_NUMBER" -le "$NEWEST" ]; then
+            echo "versionCode ${GITHUB_RUN_NUMBER} is not newer than build ${NEWEST}: phones would refuse it"; exit 1
+          fi
+
+      - name: Record the native fingerprint of this build
+        # The release workflow compares it with later commits: same native layer →
+        # over-the-air update; different → a new APK (see .github/workflows/release.yml).
+        run: node scripts/native-fingerprint.mjs | tee native-fingerprint.json
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.apk.outputs.name }}
@@ -110,11 +129,11 @@ jobs:
             TAG="apk-${VERSION}-build${GITHUB_RUN_NUMBER}"
           fi
           cp "${{ steps.apk.outputs.name }}" memory-match.apk
-          gh release create "$TAG" "${{ steps.apk.outputs.name }}" memory-match.apk \
+          gh release create "$TAG" "${{ steps.apk.outputs.name }}" memory-match.apk native-fingerprint.json \
             --latest \
             --target "$GITHUB_SHA" \
             --title "Test build ${TAG#apk-}" \
-            --notes "Installable test APK for Android (sideload). Built from ${GITHUB_SHA::7}. Open this page on your phone, tap the .apk file, and allow installing from your browser if asked."
+            --notes "Test APK for Android. Phones with the app get it inside the app (New version available → Install update). First install: open this page on the phone and tap memory-match.apk. Built from ${GITHUB_SHA::7}."
 
       - name: Check the stable download link
         run: |

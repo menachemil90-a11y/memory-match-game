@@ -48,3 +48,7 @@ Docs: https://docs.expo.dev/eas/index.md
 - All UI strings go through i18n (`src/lib/i18n/locales/en.ts`).
 - The game engine in `src/game` must stay pure TypeScript (no React/Expo imports). Never use `Math.random` (lint enforces it).
 - Before finishing: `npm run check` and `EXPO_OFFLINE=1 npx expo export --platform android` must pass.
+- **Updates for testers always happen inside the app — never "download the app again" and never uninstall** (owner's rule, 2026-11-19). `.github/workflows/release.yml` delivers every app change on main: same native layer → over-the-air update; native layer or version changed → a new test APK that the app installs itself (`src/features/updates/apkInstaller.ts`). Rules that keep this true:
+  - Prefer JavaScript-only changes; anything native (new native module, config plugin, permission, `app.json` android/ios settings) needs a **new app version** in `app.json` + `package.json` (runtime version = app version), or `release.yml` stops.
+  - Test APKs are always signed with `credentials/sideload.keystore` and get a higher build number; `android-apk.yml` refuses to publish anything else (`scripts/verify-apk.mjs`). Never change the keystore, the package id, or sign test APKs another way (an EAS-signed APK can't install over them).
+  - Never ship an APK through a link to a browser download as the update path; the in-app dialog is the path.

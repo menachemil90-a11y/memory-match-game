@@ -664,3 +664,28 @@ Fix (test APKs only):
 - Tests: installer (download into cache with progress, reuse, incomplete download rejected,
   installer intent), store (download → installer, failure + retry, cleanup), dialog (label,
   progress).
+
+## 15. Updates always inside the app, never an uninstall (session 5, 2026-11-19)
+
+Owner's rule: from build 50 on, every update happens inside the app — no downloading the
+app again, no deleting the old one. (Also in `AGENTS.md`, so every session follows it.)
+
+- **Why an uninstall was ever needed:** builds 34, 45 and 50 are all signed with the same test
+  certificate (checked: SHA-256 `14509a67…2bba5`) with growing build numbers, so each installs
+  over the previous one. Only the one EAS-cloud-built test APK (different key, §10) can't be
+  updated in place — a phone that had it needs one reinstall.
+- **Guard:** `android-apk.yml` now refuses to publish an APK that isn't signed with the test
+  certificate (`scripts/verify-apk.mjs`, against `credentials/test-signing-cert.sha256`;
+  tested on builds 34/45/50 and on a tampered copy) or whose build number isn't higher than
+  every published build.
+- **Automatic delivery — `.github/workflows/release.yml`** on every app change pushed to main
+  (docs/tests/server/web-only changes don't trigger it):
+  - compares the native fingerprint (`scripts/native-fingerprint.mjs`, `fingerprint.config.js`;
+    stable with or without per-build settings, unchanged by JS edits, changed by native config)
+    and the app version with those recorded in the newest APK release
+    (`native-fingerprint.json`, attached by `android-apk.yml`);
+  - same → over-the-air update on `preview` (`eas-update.yml`, now also callable);
+  - new version (or a release without a fingerprint, like build 50) → starts `android-apk.yml`
+    → the app offers it and installs it itself;
+  - native change without a new version → stops with instructions (over-the-air JavaScript must
+    never reach builds without its native code).

@@ -1,0 +1,104 @@
+name: Deliver to testers (in-app updates)
+
+# Every app change pushed to main reaches the testers' phones INSIDE the app —
+# never by downloading the app again or uninstalling it:
+# - same native layer and app version as the newest test APK → an over-the-air
+#   update on the "preview" channel (the app asks: Update available → Update now);
+# - native layer (fingerprint.config.js) or app version changed → a new test APK,
+#   which the app downloads and installs itself (New version available → Install
+#   update). android-apk.yml refuses to publish an APK that couldn't install over
+#   the current app (other signing key, or not a newer build).
+# A native change without a new app version would let over-the-air JavaScript reach
+# builds without that native code, so it stops here with instructions instead.
+on:
+  push:
+    branches: [main]
+    # Only changes that are part of the app (docs, tests, server and web-only
+    # files don't produce an update).
+    paths:
+      - 'src/**'
+      - 'assets/**'
+      - 'plugins/**'
+      - 'app.json'
+      - 'app.config.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'metro.config.js'
+      - 'fingerprint.config.js'
+      - '.env'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deliver-to-testers
+  cancel-in-progress: false
+
+jobs:
+  decide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      how: ${{ steps.decide.outputs.how }}
+      message: ${{ steps.decide.outputs.message }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Over the air, or a new APK?
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          CURRENT=$(node scripts/native-fingerprint.mjs)
+          TAG=$(gh release view --json tagName --jq .tagName)
+          RELEASED=$(gh release download "$TAG" --pattern native-fingerprint.json --output - 2>/dev/null || echo '{}')
+          echo "Newest test APK: $TAG  $RELEASED"
+          echo "This commit:              $CURRENT"
+          HOW=$(CURRENT="$CURRENT" RELEASED="$RELEASED" node -e '
+            const now = JSON.parse(process.env.CURRENT);
+            const apk = JSON.parse(process.env.RELEASED);
+            if (!apk.fingerprint) console.log("apk");                 // newest APK predates fingerprints
+            else if (apk.version !== now.version) console.log("apk"); // new app version
+            else if (apk.fingerprint !== now.fingerprint) console.log("bump");
+            else console.log("ota");
+          ')
+          # A commit marked [apk] already starts its own APK build (android-apk.yml).
+          if [[ "$HOW" == "apk" && "$COMMIT_MESSAGE" == *"[apk]"* ]]; then HOW="none"; fi
+          echo "how=$HOW" >> "$GITHUB_OUTPUT"
+          FIRST_LINE=$(printf '%s\n' "${COMMIT_MESSAGE:-Update}" | head -n 1 | cut -c1-200)
+          echo "message=$FIRST_LINE" >> "$GITHUB_OUTPUT"
+          echo "Decision: $HOW"
+          if [[ "$HOW" == "bump" ]]; then
+            echo "::error::The native layer changed since $TAG but the app version is still the same. Raise the version in app.json and package.json (e.g. 0.4.0 → 0.5.0) and push again: then testers get a new APK, installed inside the app."
+            exit 1
+          fi
+
+  over-the-air:
+    needs: decide
+    if: needs.decide.outputs.how == 'ota'
+    uses: ./.github/workflows/eas-update.yml
+    with:
+      channel: preview
+      message: ${{ needs.decide.outputs.message }}
+    secrets: inherit
+
+  apk:
+    needs: decide
+    if: needs.decide.outputs.how == 'apk'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Start the test APK build
+        # A separate run of android-apk.yml keeps its run number (= the APK's
+        # versionCode) growing from build to build.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run android-apk.yml --repo "$GITHUB_REPOSITORY" --ref main
