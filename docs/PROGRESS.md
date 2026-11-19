@@ -689,3 +689,13 @@ app again, no deleting the old one. (Also in `AGENTS.md`, so every session follo
     → the app offers it and installs it itself;
   - native change without a new version → stops with instructions (over-the-air JavaScript must
     never reach builds without its native code).
+
+## 16. Sound was silent on phones set to silent/vibrate (session 5, 2026-11-19)
+
+Owner: "no sound during the game". Root cause (from `expo-audio`'s own types): `sound.ts`
+set `playsInSilentMode: false`, and on Android that **suppresses playback whenever the ringer
+is on silent or vibrate** — the owner's phone was on silent (visible in their screenshot).
+Fix: `AUDIO_MODE.playsInSilentMode` is `true` on Android (game sounds follow the media volume,
+like every Android game) and `false` on iPhone (the mute switch is respected there). In-game
+sounds (deal, flip, match, miss, turn, win) are as before; menu buttons stay silent. JavaScript
+only → delivered over the air. Test: `src/lib/__tests__/sound.test.ts`.

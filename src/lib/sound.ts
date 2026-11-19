@@ -1,5 +1,5 @@
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import { useSettingsStore } from '@/features/settings/settingsStore';
 
@@ -44,15 +44,23 @@ function safely(fn: () => void): void {
   }
 }
 
+/**
+ * How the game's sounds behave. Android: game sounds follow the MEDIA volume,
+ * like every game — with `playsInSilentMode: false` expo-audio would mute them
+ * whenever the phone is on silent or vibrate (that silenced the game on testers'
+ * phones). iPhone: the mute switch is respected, as iPhone games do.
+ */
+export const AUDIO_MODE = {
+  playsInSilentMode: Platform.OS === 'android',
+  interruptionMode: 'mixWithOthers',
+  shouldPlayInBackground: false,
+} as const;
+
 /** Creates the players once. Safe to call many times. */
 export function initSound(): void {
   if (initialized) return;
   initialized = true;
-  void setAudioModeAsync({
-    playsInSilentMode: false,
-    interruptionMode: 'mixWithOthers',
-    shouldPlayInBackground: false,
-  }).catch(() => undefined);
+  void setAudioModeAsync(AUDIO_MODE).catch(() => undefined);
 
   pools = {};
   for (const [name, source] of Object.entries(SOURCES) as [SoundEffect, number][]) {
