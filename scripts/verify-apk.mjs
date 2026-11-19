@@ -8,6 +8,7 @@
  * Compares the SHA-256 of the APK's signing certificate (v2/v3 APK Signature
  * Scheme block) with credentials/test-signing-cert.sha256.
  */
+import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
