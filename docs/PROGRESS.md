@@ -100,7 +100,7 @@ _Snapshot at the end of the first build session (all six phases of `docs/BRIEF.m
 The step-by-step plan to launch is **`docs/RELEASE_PLAN.md`** (dates, who does what).
 
 1. ~~GitHub Actions blocked~~ — resolved: repo is **public** for now (never commit secrets or personal data). The owner wants it **private again before launch** → builds move to EAS first (RELEASE_PLAN §10).
-2. ~~Supabase project~~ — **live**: `memory-match` (`idarczmhhhkazbuewwao`, eu-central-1, free plan), migrations 1–4 applied by the owner, anonymous sign-ins **on** — all verified read-only (2026-11-18). **Still open: owner to paste migration 05** (grant hardening) **and migration 06** (photo boards online, §12) in the SQL Editor.
+2. ~~Supabase project~~ — **live**: `memory-match` (`idarczmhhhkazbuewwao`, eu-central-1, free plan), migrations 1–4 applied by the owner, anonymous sign-ins **on** — all verified read-only (2026-11-18). **Still open: owner to paste migration 05** (grant hardening) **and migration 06** (photo boards online, §12) in the SQL Editor. The web game (§13) is live and needs no migration.
 3. **Final app name and package ID** — still placeholders (`Memory Match`, `com.placeholder.memorymatch`, scheme `memorymatch`). Owner gives them before the first upload (target Dec 1); the package can never change.
 4. **Privacy policy hosting** — text ready (`docs/PRIVACY_POLICY.md`, placeholders only — the repo is public). Owner hosts it on Google Sites with name/email/date filled in there; then set `PRIVACY_POLICY_URL` in `src/lib/appInfo.ts`.
 5. ~~Expo account + token~~ — **done**: owner's free Expo account, token in the GitHub secret `EXPO_TOKEN`; EAS project linked (`extra.eas.projectId` 5b0d0ba0-eb49-40c4-8881-b13daffe2533), over-the-air updates on (channel `preview` for test phones, `production` for Play).
@@ -537,7 +537,7 @@ The website itself is **not** built yet.
   0.3.0 → it needs this APK (build 28 gets no over-the-air update for it; its in-app
   "New version available" dialog offers build 34).
 
-## 13. Session log — the web game (session 5, 2026-11-19)
+## 13. Session log — the web game (session 5, 2026-11-19) — live
 
 Owner's goal: an invited friend taps the link and plays against the host **in the browser** —
 no download, no account. Same codebase (Expo web export), same look; only online play works
@@ -616,3 +616,24 @@ console errors.
 `memory-match.apk` asset next to the versioned file, so
 `https://github.com/menachemil90-a11y/memory-match-game/releases/latest/download/memory-match.apk`
 is always the newest test APK (the workflow checks it after publishing).
+
+**Shipped and verified (2026-11-19, `ed26ae8` on main):**
+
+- `web.yml` on main: check → build → E2E (local build, live server) **29 passed, 3 skipped**
+  → deployed to GitHub Pages → the same suite **against the live site: 29 passed, 3 skipped**
+  (skipped: the photo-room guest test ×2 until migration 06 is applied, and the desktop-only
+  layout test in the phone project). Two-browser online games — invite link + rematch, typed
+  code, room link opened fresh + reload — passed on 360×800 and desktop, with no console errors.
+- **Test APK build 45** (`apk-0.3.0-build45`) is the repository's **latest** release with
+  `memory-match.apk` attached (same digest as the versioned file). Verified from the sandbox:
+  `…/releases/latest/download/memory-match.apk` downloads the 84 MB APK (arm64 libraries; its
+  bundle contains the new invite URL).
+- **Over-the-air update** published to `preview` (runtime 0.3.0): build 34 phones get the new
+  invite link/text, the results fix and the timing fix after the in-app "Update available".
+- Supabase was down 05:45–09:03 UTC on the platform side (the owner restarted the project);
+  every online test above ran after the restart.
+
+**Still open (needs the owner):** apply migration
+`20261119000006_photo_rooms.sql` (photo boards online). The photo-room web test then runs
+automatically on the next push to main (it skips with a note while the function is missing).
+No migration change was needed for the web game.
