@@ -51,7 +51,7 @@ describe('room codes', () => {
     // The current invite text: the link wins over other 6-letter words.
     expect(
       codeFromText(
-        "Let's play Memory Match! 🃏 Tap to play with me right in your browser — no download needed: https://menachemil90-a11y.github.io/memory-match-game/join/?c=ABC234 (Room code: ABC234)",
+        "Let's play Memory Match! 🃏 Tap to play with me right in your browser — no download needed: https://memorymatch-online.pages.dev/join/?c=ABC234 (Room code: ABC234)",
       ),
     ).toBe('ABC234');
     // Without a link: words like "Memory" (contains O) are skipped, the code is found.
@@ -59,9 +59,11 @@ describe('room codes', () => {
   });
 
   it('invites open the web game straight in the room (the old link format still works)', () => {
-    expect(inviteLink('XKCD42')).toBe(
-      'https://menachemil90-a11y.github.io/memory-match-game/join/?c=XKCD42',
-    );
+    expect(inviteLink('XKCD42')).toBe('https://memorymatch-online.pages.dev/join/?c=XKCD42');
+    // Links sent from the old address still carry the code.
+    expect(
+      codeFromText('https://menachemil90-a11y.github.io/memory-match-game/join/?c=XKCD42'),
+    ).toBe('XKCD42');
     expect(codeFromText(inviteLink('XKCD42'))).toBe('XKCD42');
     expect(appRoomLink('memorymatch', 'XKCD42')).toBe('memorymatch://online/XKCD42');
   });

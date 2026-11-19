@@ -2,7 +2,13 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { APP_DOWNLOAD_URL, ANDROID_PACKAGE, WEB_GAME_URL } from '@/lib/links';
+import {
+  APK_RELEASE_URL,
+  APP_DOWNLOAD_URL,
+  ANDROID_PACKAGE,
+  LEGACY_WEB_GAME_URL,
+  WEB_GAME_URL,
+} from '@/lib/links';
 
 const ROOT = join(__dirname, '../../../..');
 const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
@@ -13,7 +19,7 @@ describe('web game configuration', () => {
     const site = new URL(WEB_GAME_URL);
     expect(html).toContain(`<meta property="og:url" content="${WEB_GAME_URL}/" />`);
     expect(html).toContain(`content="${WEB_GAME_URL}/og-image.png"`);
-    expect(html).toContain(`href="${site.pathname}/apple-touch-icon.png"`);
+    expect(html).toContain(`href="${site.pathname.replace(/\/$/, '')}/apple-touch-icon.png"`);
     for (const tag of [
       'og:title',
       'og:description',
@@ -34,13 +40,18 @@ describe('web game configuration', () => {
     );
   });
 
-  it('the download link is the newest APK of this repository', () => {
-    const site = new URL(WEB_GAME_URL);
-    const owner = site.hostname.split('.')[0];
-    const repo = site.pathname.slice(1);
-    expect(APP_DOWNLOAD_URL).toBe(
+  it("the download link is on the game's own site and leads to the newest APK", () => {
+    // Friends see the game's address; the site redirects it (_redirects, build-web.mjs).
+    expect(APP_DOWNLOAD_URL).toBe(`${WEB_GAME_URL}/download`);
+    // The old address is this repository's GitHub Pages site; the APK is in its releases.
+    const legacy = new URL(LEGACY_WEB_GAME_URL);
+    const owner = legacy.hostname.split('.')[0];
+    const repo = legacy.pathname.slice(1);
+    expect(APK_RELEASE_URL).toBe(
       `https://github.com/${owner}/${repo}/releases/latest/download/memory-match.apk`,
     );
+    // The game's address doesn't show the owner or GitHub.
+    expect(new URL(WEB_GAME_URL).hostname).not.toMatch(/github|menachem/);
     // The APK workflow attaches exactly this file name to the latest release.
     expect(read('.github/workflows/android-apk.yml')).toMatch(/memory-match\.apk[\s\S]*--latest/);
   });

@@ -2,11 +2,11 @@ import { defineConfig } from '@playwright/test';
 
 /**
  * End-to-end tests of the web game (e2e/web). By default they run against the
- * local export (`npm run build:web`), served like GitHub Pages; set
+ * local export (`npm run build:web`), served like the static host; set
  * E2E_BASE_URL to test the live site instead. Tests that need the game server
  * (Supabase) run only with E2E_ONLINE=1 (CI can reach it; see web.yml).
  */
-const LOCAL = 'http://localhost:8099/memory-match-game/';
+const LOCAL = 'http://localhost:8099/';
 const baseURL = process.env.E2E_BASE_URL ?? LOCAL;
 
 export default defineConfig({
@@ -29,7 +29,7 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        command: 'node e2e/serve-pages.cjs dist/web /memory-match-game 8099',
+        command: 'node e2e/serve-pages.cjs dist/web / 8099',
         url: LOCAL,
         reuseExistingServer: true,
       },

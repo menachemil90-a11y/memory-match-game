@@ -11,6 +11,9 @@ import {
 
 /** The web game's shell, routes, app-only popups and links — no game server needed. */
 
+/** The home screen: the site root (the web game lives at the root of its address). */
+const home = /^https?:\/\/[^/]+\/$/;
+
 test.describe('home and the download button', () => {
   test('looks like the app, with a big download button and the top bar', async ({ page }) => {
     const problems = watchConsole(page);
@@ -42,7 +45,7 @@ test.describe('home and the download button', () => {
       );
       await page.getByRole('button', { name: 'Not now' }).click();
       await expect(page.getByText('Available in the app')).toBeHidden();
-      await expect(page).toHaveURL(/\/memory-match-game\/$/);
+      await expect(page).toHaveURL(home);
     }
     // "Play online here" goes to the part that works in the browser.
     await page.getByRole('button', { name: 'Solo', exact: true }).click();
@@ -54,9 +57,7 @@ test.describe('home and the download button', () => {
 
   test('the download link points at the newest APK of the releases', async ({ page }) => {
     await page.goto('');
-    expect(APP_DOWNLOAD_URL).toBe(
-      'https://github.com/menachemil90-a11y/memory-match-game/releases/latest/download/memory-match.apk',
-    );
+    expect(APP_DOWNLOAD_URL).toBe(`${WEB_GAME_URL}/download`);
     // A real link: the browser downloads it like any other link (no script involved).
     const tag = await page
       .getByRole('link', { name: 'Download the app' })
@@ -68,7 +69,7 @@ test.describe('home and the download button', () => {
   test('app-only screens cannot be opened on the web, not even by URL', async ({ page }) => {
     for (const path of ['game', 'levels', 'my-boards', 'my-boards/new', 'results', 'setup']) {
       await page.goto(path);
-      await expect(page).toHaveURL(/\/memory-match-game\/$/);
+      await expect(page).toHaveURL(home);
       await expect(page.getByRole('button', { name: 'Play Online' })).toBeVisible();
     }
   });

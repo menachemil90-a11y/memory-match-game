@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Builds the web game for GitHub Pages: `npm run build:web` → dist/web.
+ * Builds the web game for Cloudflare Pages: `npm run build:web` → dist/web.
  *
  * 1. Exports the Expo Router app for the web (single-page app) under the path
- *    of WEB_GAME_URL (src/lib/links.ts), e.g. /memory-match-game.
- * 2. GitHub Pages serves files only, so it adds copies of index.html:
+ *    of WEB_GAME_URL (src/lib/links.ts) — the site root today, a sub-path works too.
+ * 2. The host serves files only, so it adds copies of index.html:
  *    - <route>/index.html for every fixed route (online/, settings/, join/ …):
  *      opened fresh they are real pages (HTTP 200). The invite link
  *      (…/join/?c=CODE) is one of them, so chat apps show the link preview, and
@@ -12,7 +12,8 @@
  *    - 404.html: routes with a room code (…/online/CODE, e.g. after a reload
  *      during a game) can't be files; GitHub Pages answers them with 404.html,
  *      which loads the game, and the game shows the right screen.
- * 3. Checks the result (base path, link-preview tags, no SQLite in the bundle).
+ * 3. Writes _redirects: APP_DOWNLOAD_URL (…/download) → APK_RELEASE_URL.
+ * 4. Checks the result (base path, link-preview tags, no SQLite in the bundle).
  */
 import { spawnSync } from 'node:child_process';
 import {
@@ -29,11 +30,11 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'dist', 'web');
 
-/** The web game's address, read from the one place it is configured. */
-function webGameUrl() {
+/** A link from src/lib/links.ts, the one place they are configured. */
+function link(name) {
   const links = readFileSync(join(ROOT, 'src/lib/links.ts'), 'utf8');
-  const match = /export const WEB_GAME_URL = '([^']+)'/.exec(links);
-  if (!match) throw new Error('WEB_GAME_URL not found in src/lib/links.ts');
+  const match = new RegExp(`export const ${name} =\\s*'([^']+)'`).exec(links);
+  if (!match) throw new Error(`${name} not found in src/lib/links.ts`);
   return new URL(match[1]);
 }
 
@@ -42,7 +43,7 @@ function fail(message) {
   process.exit(1);
 }
 
-const site = webGameUrl();
+const site = link('WEB_GAME_URL');
 const basePath = site.pathname.replace(/\/$/, '');
 console.log(`Building the web game for ${site.href} (base path ${basePath})`);
 
@@ -99,5 +100,14 @@ for (const route of routes) {
 }
 copyFileSync(index, join(OUT, '404.html'));
 console.log(`Pages for ${routes.length} routes: ${routes.join(', ')}`);
+
+// "Download the app" → the newest APK (a 302, so the target can change any time).
+const download = link('APP_DOWNLOAD_URL');
+const apk = link('APK_RELEASE_URL');
+if (download.origin !== site.origin || !download.pathname.startsWith(`${basePath}/`)) {
+  fail(`APP_DOWNLOAD_URL is not on the web game's site: ${download.href}`);
+}
+writeFileSync(join(OUT, '_redirects'), `${download.pathname} ${apk.href} 302\n`);
+console.log(`Redirect: ${download.pathname} → ${apk.href}`);
 writeFileSync(join(OUT, '.nojekyll'), '');
 console.log(`Web game ready in ${OUT}`);

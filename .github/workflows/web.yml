@@ -1,13 +1,17 @@
-name: Web game (GitHub Pages)
+name: Web game (Cloudflare Pages)
 
 # The web game — the same app exported for browsers, online play only — at
-# https://menachemil90-a11y.github.io/memory-match-game/ (WEB_GAME_URL in src/lib/links.ts).
+# https://memorymatch-online.pages.dev/ (WEB_GAME_URL in src/lib/links.ts).
 #
 # Every push: checks → build (npm run build:web) → end-to-end tests: two browsers
 # play real online games against the live game server, plus the site's links,
-# popups and routes (e2e/web). On main, only if all of that passes: deploy to
-# GitHub Pages, then run the same tests against the live site.
-# Pages must use Source "GitHub Actions" (repository Settings → Pages).
+# popups and routes (e2e/web). On main, only if all of that passes:
+# - deploy the game to Cloudflare Pages (project = the first label of WEB_GAME_URL's
+#   host; secrets CLOUDFLARE_API_TOKEN with "Cloudflare Pages: Edit", CLOUDFLARE_ACCOUNT_ID);
+# - deploy the old address (GitHub Pages, LEGACY_WEB_GAME_URL) as a forwarder to the
+#   new one, so invite links sent before the move keep working
+#   (scripts/build-legacy-redirect.mjs; Pages Source must be "GitHub Actions");
+# - run the same tests against the live site, and check both redirects.
 on:
   push:
     branches: ['**']
@@ -51,14 +55,55 @@ jobs:
           name: e2e-report-local
           path: playwright-report
           retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        with:
+          name: web-game
+          path: dist/web
+          include-hidden-files: true
+          retention-days: 7
+      - name: Build the old address (forwards to the new one)
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: node scripts/build-legacy-redirect.mjs
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         with:
-          path: dist/web
+          path: dist/legacy
 
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: cloudflare-pages
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-game
+          path: dist/web
+      - name: Deploy to Cloudflare Pages
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing secret CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Missing secret CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+          test -f dist/web/_redirects || { echo "dist/web/_redirects is missing"; exit 1; }
+          PROJECT="$(node -p "new URL(/WEB_GAME_URL = '([^']+)'/.exec(require('fs').readFileSync('src/lib/links.ts','utf8'))[1]).hostname.split('.')[0]")"
+          echo "Project: $PROJECT"
+          # First deploy only: create the project (its name is the site's address).
+          if ! npx --yes wrangler@4 pages project list | grep -qw "$PROJECT"; then
+            npx --yes wrangler@4 pages project create "$PROJECT" --production-branch main
+          fi
+          npx --yes wrangler@4 pages deploy dist/web --project-name "$PROJECT" --branch main --commit-hash "$GITHUB_SHA" --commit-message "${GITHUB_SHA::7}"
+
+  deploy-old-address:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    # Only once the game is live at the new address: never forward to a site that isn't there.
+    needs: [build, deploy]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
@@ -75,7 +120,7 @@ jobs:
         uses: actions/deploy-pages@v4
 
   verify-live:
-    needs: [build, deploy]
+    needs: [build, deploy, deploy-old-address]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -100,6 +145,18 @@ jobs:
             sleep 10
           done
           echo "The live site never served $ENTRY"; exit 1
+      - name: The download link and the old address redirect
+        run: |
+          links=src/lib/links.ts
+          get() { node -p "/$1 =\\s*'([^']+)'/.exec(require('fs').readFileSync('$links','utf8'))[1]"; }
+          DOWNLOAD="$(get APP_DOWNLOAD_URL)"; APK="$(get APK_RELEASE_URL)"; OLD="$(get LEGACY_WEB_GAME_URL)"
+          loc="$(curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' "$DOWNLOAD")"
+          echo "$DOWNLOAD → $loc"
+          test "$loc" = "302 $APK"
+          curl -fsSL -o /dev/null -w 'APK: %{http_code} %{size_download} bytes\n' "$DOWNLOAD"
+          page="$(curl -fsS "$OLD/join/?c=ABC234")"
+          echo "$page" | grep -q "location.replace(\"${url%/}\"" || { echo "The old address doesn't forward to $url"; exit 1; }
+          echo "Old address forwards to ${url%/}"
       - name: Install the test browser
         run: npx playwright install --with-deps chromium
       - name: End-to-end tests against the live site
