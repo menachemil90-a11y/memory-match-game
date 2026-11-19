@@ -589,6 +589,9 @@ site.
 - Online results vanished for the player still there when the opponent went back to the
   menu (room closed → "This game has ended"): the results now stay, with "<name> has left the
   game." instead of Rematch (app and web). Found by the two-browser E2E test.
+- The host's room screen joined the room again right after the host left it (the auto-join
+  for invite links re-ran when the room was cleared → a `join_room` 400 on every "Back to
+  menu"/"Cancel"). Auto-join is now decided once, when the screen opens (regression test).
 - Nickname field overflowed its card in browsers (CSS `min-width: auto` on a text input in a
   flex row) → `minWidth: 0`.
 - Accessibility: the active player was shown by color only → player panels now say

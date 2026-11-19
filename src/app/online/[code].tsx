@@ -71,7 +71,8 @@ export default function OnlineRoomScreen() {
   const [busy, setBusy] = useState(false);
   const [needsName, setNeedsName] = useState(false);
   const [copied, setCopied] = useState<'code' | 'invite' | null>(null);
-  const tried = useRef(false);
+  /** The room code this screen already decided about joining (see below). */
+  const tried = useRef<string | null>(null);
   const flashCopied = (what: 'code' | 'invite') => {
     setCopied(what);
     setTimeout(() => setCopied(null), 1500);
@@ -96,13 +97,16 @@ export default function OnlineRoomScreen() {
     }
   };
 
-  // Opened from an invite link (or the Join button): join automatically.
+  // Opened from an invite link (or the Join button): join automatically — decided
+  // once per code, when the screen opens. Leaving the room later (Back to menu)
+  // must not join it again.
   useEffect(() => {
-    if (inThisRoom || tried.current || !isOnlineConfigured || !isValidRoomCode(code)) return;
-    tried.current = true;
+    if (tried.current === code) return;
+    tried.current = code;
+    if (inThisRoom || !isOnlineConfigured || !isValidRoomCode(code)) return;
     void join();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, inThisRoom]);
+  }, [code]);
 
   // The game and its results. A room the opponent closed after the game (they
   // went back to the menu) keeps showing this player's results.
