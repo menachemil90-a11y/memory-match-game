@@ -726,3 +726,15 @@ Owner's screenshot: sharing the game's link in WhatsApp showed a bare URL — no
   that tap; the lobby's Join (name chosen there) still enters directly (`?join=1`). A reload
   mid-game returns the player to their room (`resume`: looks up the player's own room by
   code; never signs a visitor in). Tests: room screen (4), resume (2), E2E updated.
+
+## 16. Board editor: "Play online" button (session 4, 2026-11-19)
+
+Owner's request (screenshot of the editor): next to **Play solo** and **Play with 2**, a
+**Play online** button so a friend can be invited straight from the board, without going
+through the online menu. `src/features/online/PlayOnlineButton.tsx` opens the online level
+choice for this board (`/online/new?boardId=…`) — from there the existing photo-room flow
+(consent window → upload → room code + invite link, §12). If the player has no valid online
+name yet, a window with the name + avatar card asks for it first (same check as the online
+lobby). Hidden when online play isn't configured; disabled while the board has too few
+photos, like the other play buttons. Tests: straight to the level choice with a name; asks
+for the name first without one. JavaScript only → delivered over the air by `release.yml`.

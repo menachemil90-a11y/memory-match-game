@@ -16,6 +16,7 @@ import {
 } from '@/features/boards/custom/customBoardsStore';
 import { MAX_BOARD_NAME_LENGTH, type CustomPhoto } from '@/features/boards/custom/types';
 import { useAddPhotos } from '@/features/boards/custom/useAddPhotos';
+import { PlayOnlineButton } from '@/features/online/PlayOnlineButton';
 import { useCustomBoardsStatus } from '@/features/boards/useBoard';
 import { MAX_BOARD_IMAGES, MIN_BOARD_IMAGES, nextLockedLevel } from '@/game';
 import { feedback } from '@/lib/feedback';
@@ -277,6 +278,7 @@ export default function BoardEditorScreen() {
             router.push({ pathname: '/levels', params: { mode: 'local', boardId: board.id } })
           }
         />
+        <PlayOnlineButton boardId={board.id} disabled={!canPlay} />
         <GameButton
           label={t('myBoards.deleteBoard')}
           icon="trash"
