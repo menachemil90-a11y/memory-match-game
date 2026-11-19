@@ -1,5 +1,5 @@
 /* eslint-disable import/first -- modules must load after jest.mock() */
-import { Linking, Platform } from 'react-native';
+import { Platform } from 'react-native';
 
 const mockEnv = {
   otaEnabled: true,
@@ -19,6 +19,16 @@ jest.mock('expo-updates', () => ({
   fetchUpdateAsync: jest.fn(async () => ({ isNew: true })),
   reloadAsync: jest.fn(async () => undefined),
 }));
+const mockFile = { uri: 'file:///cache/apk-updates/memory-match-build30.apk' };
+jest.mock('../apkInstaller', () => ({
+  downloadApk: jest.fn(async (_apk: unknown, onProgress: (fraction: number) => void) => {
+    onProgress(0.5);
+    onProgress(1);
+    return mockFile;
+  }),
+  openInstaller: jest.fn(async () => undefined),
+  removeDownloadedApks: jest.fn(),
+}));
 jest.mock('expo-application', () => ({
   get nativeBuildVersion() {
     return mockEnv.build;
@@ -35,6 +45,7 @@ jest.mock('expo-constants', () => ({
 
 import * as Updates from 'expo-updates';
 
+import { downloadApk, openInstaller, removeDownloadedApks } from '../apkInstaller';
 import { AUTO_CHECK_INTERVAL_MS, useUpdatesStore } from '../updatesStore';
 
 const checkForUpdate = Updates.checkForUpdateAsync as jest.Mock;
@@ -49,7 +60,9 @@ function githubReturns(builds: number[]) {
         tag_name: `apk-0.2.0-build${b}`,
         draft: false,
         html_url: `https://github.com/r/${b}`,
-        assets: [{ name: `m-${b}.apk`, browser_download_url: `https://dl/${b}.apk` }],
+        assets: [
+          { name: `m-${b}.apk`, browser_download_url: `https://dl/${b}.apk`, size: 84_000_000 },
+        ],
       })),
   });
 }
@@ -93,7 +106,13 @@ describe('checking for updates', () => {
     expect(store()).toMatchObject({
       status: 'available',
       promptOpen: true,
-      available: { kind: 'apk', build: 27, version: '0.2.0', downloadUrl: 'https://dl/27.apk' },
+      available: {
+        kind: 'apk',
+        build: 27,
+        version: '0.2.0',
+        downloadUrl: 'https://dl/27.apk',
+        size: 84_000_000,
+      },
     });
   });
 
@@ -172,13 +191,42 @@ describe('asking the player', () => {
     expect(Updates.reloadAsync).toHaveBeenCalledTimes(1);
   });
 
-  it('"Download" opens the new APK in the browser', async () => {
-    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+  it('"Install update" downloads the APK inside the app and opens the installer (no browser)', async () => {
     githubReturns([30]);
     await store().check({ manual: false });
+    const progress: (number | null)[] = [];
+    const unsubscribe = useUpdatesStore.subscribe((s) => progress.push(s.progress));
     await store().install();
-    expect(open).toHaveBeenCalledWith('https://dl/30.apk');
-    expect(store().promptOpen).toBe(false);
+    unsubscribe();
+    expect(downloadApk).toHaveBeenCalledWith(
+      expect.objectContaining({ build: 30, downloadUrl: 'https://dl/30.apk', size: 84_000_000 }),
+      expect.any(Function),
+    );
+    expect(progress).toEqual(expect.arrayContaining([0, 0.5, 1]));
+    expect(openInstaller).toHaveBeenCalledWith(mockFile);
+    // Back in the app (installer closed without installing): it can be installed again.
+    expect(store()).toMatchObject({ status: 'available', promptOpen: true, progress: null });
+  });
+
+  it('a failed APK download shows the error and can be retried', async () => {
+    const errors = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    githubReturns([30]);
+    await store().check({ manual: false });
+    (downloadApk as jest.Mock).mockRejectedValueOnce(new Error('offline'));
+    await store().install();
+    expect(store()).toMatchObject({ status: 'installFailed', progress: null, promptOpen: true });
+    expect(openInstaller).not.toHaveBeenCalled();
+    await store().install();
+    expect(openInstaller).toHaveBeenCalledTimes(1);
+    errors.mockRestore();
+  });
+
+  it('removes a downloaded APK once no newer one is offered (installed)', async () => {
+    await store().check({ manual: true }); // up to date: build 25 is the newest
+    expect(removeDownloadedApks).toHaveBeenCalledTimes(1);
+    githubReturns([30]);
+    await store().check({ manual: true });
+    expect(removeDownloadedApks).toHaveBeenCalledTimes(1);
   });
 
   it('a failed download keeps the dialog open with an error, and can be retried', async () => {

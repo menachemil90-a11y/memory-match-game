@@ -29,6 +29,7 @@ export function UpdatePrompt() {
   const available = useUpdatesStore((s) => s.available);
   const promptOpen = useUpdatesStore((s) => s.promptOpen);
   const status = useUpdatesStore((s) => s.status);
+  const progress = useUpdatesStore((s) => s.progress);
   const autoCheck = useUpdatesStore((s) => s.autoCheck);
   const install = useUpdatesStore((s) => s.install);
   const dismiss = useUpdatesStore((s) => s.dismiss);
@@ -49,11 +50,14 @@ export function UpdatePrompt() {
   const message = isOta
     ? t('updates.otaMessage')
     : t('updates.apkMessage', { version: available.version, build: available.build });
-  const actionLabel = installing
-    ? t('updates.updating')
-    : isOta
-      ? t('updates.updateNow')
-      : t('updates.download');
+  const actionLabel =
+    installing && progress !== null
+      ? t('updates.downloading', { percent: Math.floor(progress * 100) })
+      : installing
+        ? t('updates.updating')
+        : isOta
+          ? t('updates.updateNow')
+          : t('updates.installApk');
 
   return (
     <Dialog

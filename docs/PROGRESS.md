@@ -637,3 +637,30 @@ is always the newest test APK (the workflow checks it after publishing).
 `20261119000006_photo_rooms.sql` (photo boards online). The photo-room web test then runs
 automatically on the next push to main (it skips with a note while the function is missing).
 No migration change was needed for the web game.
+
+## 14. In-app APK updates (session 5, 2026-11-19)
+
+Owner's report (screenshot): "Download" in the "New version available" dialog opened the
+browser and downloaded the APK there — but the update was meant to happen **inside the app**.
+Root cause: the APK path of `updatesStore.install()` called `Linking.openURL(downloadUrl)`,
+i.e. it handed the file to the browser.
+
+Fix (test APKs only):
+
+- `src/features/updates/apkInstaller.ts`: the app downloads the APK into its own cache
+  (`expo-file-system` download task, progress in the dialog: "Downloading… 42%", size checked
+  against the release; a complete earlier download is reused), then opens **Android's
+  installer** directly (`expo-intent-launcher`, `ACTION_VIEW` on the file's `content://` URI with
+  read permission). Downloaded APKs are removed once no newer build is offered.
+- `REQUEST_INSTALL_PACKAGES` is added **only to test APKs** (`app.config.js`, keyed on
+  `APK_BUILD_NUMBER`); verified by prebuild: the store manifest is unchanged, the test
+  manifest differs only by this permission. Google Play builds keep updating through the store.
+- The first time, Android itself asks to allow installs from Memory Match (a system security
+  screen no app can skip); after that it's Install → done.
+- New native module → app version **0.4.0** (runtime 0.4.0), so this code never reaches 0.3.0
+  apps over the air. Consequence: phones on 0.3.0 install build 46 once more the old way
+  (their dialog still opens the browser — that code is in the installed app); every update
+  after that happens inside the app.
+- Tests: installer (download into cache with progress, reuse, incomplete download rejected,
+  installer intent), store (download → installer, failure + retry, cleanup), dialog (label,
+  progress).

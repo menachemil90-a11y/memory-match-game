@@ -8,7 +8,11 @@ const release = (tag: string, extra: Record<string, unknown> = {}) => ({
   html_url: `https://github.com/o/r/releases/tag/${tag}`,
   assets: [
     { name: 'notes.txt', browser_download_url: 'https://x/notes.txt' },
-    { name: `memory-match-${tag}.apk`, browser_download_url: `https://x/${tag}.apk` },
+    {
+      name: `memory-match-${tag}.apk`,
+      browser_download_url: `https://x/${tag}.apk`,
+      size: 84_000_000,
+    },
   ],
   ...extra,
 });
@@ -24,6 +28,7 @@ describe('newest test APK in GitHub Releases', () => {
       version: '0.2.0',
       build: 31,
       downloadUrl: 'https://x/apk-0.2.0-build31.apk',
+      size: 84_000_000,
       pageUrl: 'https://github.com/o/r/releases/tag/apk-0.2.0-build31',
     });
   });

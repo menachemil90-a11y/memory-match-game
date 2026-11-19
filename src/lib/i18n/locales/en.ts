@@ -343,9 +343,10 @@ const en = {
     updating: 'Updating…',
     apkTitle: 'New version available',
     apkMessage:
-      'Version {{version}} (build {{build}}) is ready. Download it, then open the file to install it. Your boards and scores stay.',
-    download: 'Download',
-    installFailed: "Couldn't download the update. Check your internet connection and try again.",
+      'Version {{version}} (build {{build}}) is ready. The app downloads it and opens the installer. Your boards and scores stay. The first time, Android asks you to allow installs from Memory Match — turn it on, then come back and tap Install.',
+    installApk: 'Install update',
+    downloading: 'Downloading… {{percent}}%',
+    installFailed: "Couldn't install the update. Check your internet connection and try again.",
     later: 'Later',
     show: 'Show update',
   },

@@ -1,9 +1,10 @@
 import * as Application from 'expo-application';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
-import { Linking, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { create } from 'zustand';
 
+import { downloadApk, openInstaller, removeDownloadedApks } from './apkInstaller';
 import { fetchLatestApkRelease, isValidRepo } from './apkReleases';
 
 /**
@@ -12,14 +13,22 @@ import { fetchLatestApkRelease, isValidRepo } from './apkReleases';
  * - over-the-air (EAS Update): new JavaScript/assets for this app version —
  *   "Update now" downloads it and restarts the app in a few seconds;
  * - new test APK (GitHub Releases): only in test builds (update channel
- *   "preview" with a known build number and releases repository) — "Download"
- *   opens the .apk in the browser. Store builds never self-update this way
+ *   "preview" with a known build number and releases repository) — "Install"
+ *   downloads it inside the app (progress in the dialog) and opens Android's
+ *   installer (apkInstaller.ts). Store builds never self-update this way
  *   (not allowed by Google Play); they get new versions from the store.
  */
 
 export type AvailableUpdate =
   | { kind: 'ota'; id: string }
-  | { kind: 'apk'; id: string; version: string; build: number; downloadUrl: string };
+  | {
+      kind: 'apk';
+      id: string;
+      version: string;
+      build: number;
+      downloadUrl: string;
+      size: number;
+    };
 
 export type UpdateStatus =
   | 'idle'
@@ -73,6 +82,7 @@ async function findUpdate(): Promise<AvailableUpdate | null> {
         version: latest.version,
         build: latest.build,
         downloadUrl: latest.downloadUrl,
+        size: latest.size,
       };
     }
   }
@@ -85,6 +95,8 @@ interface UpdatesState {
   /** The "new version" dialog is wanted (it waits while a game is running). */
   promptOpen: boolean;
   lastCheckedAt: number | null;
+  /** Download progress of a new APK, 0..1 (null when not downloading). */
+  progress: number | null;
   /** Updates the player answered "Later" to; background checks don't re-ask this session. */
   dismissed: string[];
   check: (options: { manual: boolean }) => Promise<void>;
@@ -99,6 +111,7 @@ export const useUpdatesStore = create<UpdatesState>()((set, get) => ({
   available: null,
   promptOpen: false,
   lastCheckedAt: null,
+  progress: null,
   dismissed: [],
 
   check: async ({ manual }) => {
@@ -111,6 +124,8 @@ export const useUpdatesStore = create<UpdatesState>()((set, get) => ({
     set({ status: 'checking' });
     try {
       const available = await findUpdate();
+      // An APK downloaded earlier is installed (or outdated) once no newer one is offered.
+      if (available?.kind !== 'apk' && apkUpdatesSupported()) removeDownloadedApks();
       const askAgain = available !== null && (manual || !get().dismissed.includes(available.id));
       set({
         status: available ? 'available' : 'upToDate',
@@ -139,12 +154,18 @@ export const useUpdatesStore = create<UpdatesState>()((set, get) => ({
         await Updates.fetchUpdateAsync();
         await Updates.reloadAsync();
       } else {
-        await Linking.openURL(available.downloadUrl);
-        set({ status: 'available', promptOpen: false });
+        set({ progress: 0 });
+        const file = await downloadApk(available, (progress) => set({ progress }));
+        set({ progress: null });
+        // Android's installer takes over; after installing it restarts the app.
+        // Coming back here means the player closed it: they can install again
+        // (the download is kept) or choose Later.
+        await openInstaller(file);
+        set({ status: 'available' });
       }
     } catch (error) {
       console.error('Installing the update failed', error);
-      set({ status: 'installFailed' });
+      set({ status: 'installFailed', progress: null });
     }
   },
 

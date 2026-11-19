@@ -8,8 +8,10 @@
 export interface ApkRelease {
   version: string;
   build: number;
-  /** Direct link to the .apk file (the browser downloads it). */
+  /** Direct link to the .apk file (the app downloads it). */
   downloadUrl: string;
+  /** Size of the .apk in bytes. */
+  size: number;
   /** The release page (fallback if the direct download can't be opened). */
   pageUrl: string;
 }
@@ -33,11 +35,13 @@ export function latestApkRelease(releases: unknown): ApkRelease | null {
     if (!match) continue;
     const assets = Array.isArray(release.assets) ? release.assets : [];
     const apk = assets.find(
-      (a): a is { name: string; browser_download_url: string } =>
+      (a): a is { name: string; browser_download_url: string; size: number } =>
         isRecord(a) &&
         typeof a.name === 'string' &&
         a.name.endsWith('.apk') &&
-        typeof a.browser_download_url === 'string',
+        typeof a.browser_download_url === 'string' &&
+        typeof a.size === 'number' &&
+        a.size > 0,
     );
     if (!apk || typeof release.html_url !== 'string') continue;
     const build = Number(match[2]);
@@ -46,6 +50,7 @@ export function latestApkRelease(releases: unknown): ApkRelease | null {
         version: match[1]!,
         build,
         downloadUrl: apk.browser_download_url,
+        size: apk.size,
         pageUrl: release.html_url,
       };
     }

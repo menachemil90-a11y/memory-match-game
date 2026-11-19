@@ -14,6 +14,10 @@
 // - APK_RELEASES_REPO ("owner/repo", from GitHub Actions) tells the app where
 //   the test APKs are published (GitHub Releases). Not committed: it is only
 //   known inside the workflows.
+// - Test APKs also get REQUEST_INSTALL_PACKAGES: a new test APK is downloaded
+//   and installed from inside the app (src/features/updates/apkInstaller.ts).
+//   Google Play forbids this permission for apps like ours — store builds
+//   (EAS, no APK_BUILD_NUMBER) never get it and are updated by the store.
 //
 // Web game (GitHub Pages): scripts/build-web.mjs sets WEB_BASE_PATH (the path of
 // WEB_GAME_URL in src/lib/links.ts, e.g. "/memory-match-game") so the export
@@ -33,7 +37,14 @@ module.exports = ({ config }) => {
     };
   }
   if (Number.isInteger(build) && build > 0) {
-    next.android = { ...config.android, versionCode: build };
+    next.android = {
+      ...config.android,
+      versionCode: build,
+      permissions: [
+        ...(config.android?.permissions ?? []),
+        'android.permission.REQUEST_INSTALL_PACKAGES',
+      ],
+    };
   }
   if (repo) {
     next.extra.apkReleasesRepo = repo;

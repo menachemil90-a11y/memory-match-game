@@ -94,6 +94,7 @@ describe('update dialog', () => {
         version: '0.2.0',
         build: 30,
         downloadUrl: 'https://dl/30.apk',
+        size: 84_000_000,
       },
       promptOpen: true,
       lastCheckedAt: Date.now(),
@@ -101,7 +102,26 @@ describe('update dialog', () => {
     await renderScreen(<UpdatePrompt />);
     expect(screen.getByText('New version available')).toBeTruthy();
     expect(screen.getByText(/Version 0\.2\.0 \(build 30\) is ready/)).toBeTruthy();
-    expect(screen.getByText('Download')).toBeTruthy();
+    expect(screen.getByText('Install update')).toBeTruthy();
+  });
+
+  it('shows the download progress inside the dialog', async () => {
+    useUpdatesStore.setState({
+      status: 'installing',
+      progress: 0.42,
+      available: {
+        kind: 'apk',
+        id: 'apk:30',
+        version: '0.2.0',
+        build: 30,
+        downloadUrl: 'https://dl/30.apk',
+        size: 84_000_000,
+      },
+      promptOpen: true,
+      lastCheckedAt: Date.now(),
+    });
+    await renderScreen(<UpdatePrompt />);
+    expect(screen.getByText('Downloading… 42%')).toBeTruthy();
   });
 });
 
