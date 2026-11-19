@@ -658,7 +658,7 @@ Fix (test APKs only):
 - The first time, Android itself asks to allow installs from Memory Match (a system security
   screen no app can skip); after that it's Install → done.
 - New native module → app version **0.4.0** (runtime 0.4.0), so this code never reaches 0.3.0
-  apps over the air. Consequence: phones on 0.3.0 install build 46 once more the old way
+  apps over the air. Consequence: phones on 0.3.0 install build 50 (`apk-0.4.0-build50`, verified: permission, installer module, 0.4.0) once more the old way
   (their dialog still opens the browser — that code is in the installed app); every update
   after that happens inside the app.
 - Tests: installer (download into cache with progress, reuse, incomplete download rejected,
