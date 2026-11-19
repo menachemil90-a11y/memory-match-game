@@ -1,10 +1,11 @@
 /**
- * Serves the web export (dist/web) the way GitHub Pages does, for local tests:
+ * Serves the web export (dist/web) the way the static host does, for local tests:
  * - under the site's sub-path (e.g. http://localhost:8099/memory-match-game/);
  * - a folder serves its index.html (…/join/?c=CODE → join/index.html, 200);
  * - anything else that doesn't exist serves 404.html with status 404 (the SPA
  *   fallback that makes fresh deep links like …/online/CODE work);
- * - no special headers (Pages can't send COOP/COEP, so neither do we).
+ * - no special headers (the host doesn't send COOP/COEP, so neither do we);
+ * - nothing under a node_modules folder (the uploader skips those).
  *
  * Usage: node e2e/serve-pages.cjs dist/web /memory-match-game [port]
  */
@@ -48,6 +49,11 @@ http
       return;
     }
     const rel = decodeURIComponent(url.pathname.slice(base.length));
+    // Like the live host: Cloudflare's uploader never uploads node_modules folders.
+    if (rel.split('/').includes('node_modules')) {
+      send(res, 404, path.join(root, '404.html'));
+      return;
+    }
     let file = path.join(root, rel);
     if (!file.startsWith(root)) {
       res.writeHead(400).end();

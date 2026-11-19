@@ -13,7 +13,9 @@
  *      during a game) can't be files; GitHub Pages answers them with 404.html,
  *      which loads the game, and the game shows the right screen.
  * 3. Writes _redirects: APP_DOWNLOAD_URL (…/download) → APK_RELEASE_URL.
- * 4. Checks the result (base path, link-preview tags, no SQLite in the bundle).
+ * 4. Moves assets/node_modules (fonts, icons) to assets/vendor: Cloudflare's
+ *    uploader (wrangler pages deploy) never uploads a folder named node_modules.
+ * 5. Checks the result (base path, link-preview tags, no SQLite in the bundle).
  */
 import { spawnSync } from 'node:child_process';
 import {
@@ -22,6 +24,7 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  renameSync,
   writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -53,6 +56,32 @@ const result = spawnSync(
   { cwd: ROOT, stdio: 'inherit', env: { ...process.env, WEB_BASE_PATH: basePath } },
 );
 if (result.status !== 0) fail(`expo export failed (exit ${result.status})`);
+
+// Fonts and icons from packages are exported to assets/node_modules/…; the
+// uploader skips every node_modules folder, so the live site would have none.
+const VENDOR_FROM = `${basePath}/assets/node_modules/`;
+const VENDOR_TO = `${basePath}/assets/vendor/`;
+if (existsSync(join(OUT, 'assets', 'node_modules'))) {
+  renameSync(join(OUT, 'assets', 'node_modules'), join(OUT, 'assets', 'vendor'));
+}
+/** Every file under dir (relative paths). */
+function files(dir, prefix = '') {
+  return readdirSync(join(dir, prefix), { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? files(dir, join(prefix, e.name)) : [join(prefix, e.name)],
+  );
+}
+for (const file of files(OUT)) {
+  if (file.split(/[\\/]/).includes('node_modules')) fail(`still under node_modules: ${file}`);
+  if (!/\.(js|html|json|css|map)$/.test(file)) continue;
+  const text = readFileSync(join(OUT, file), 'utf8');
+  if (text.includes(VENDOR_FROM))
+    writeFileSync(join(OUT, file), text.split(VENDOR_FROM).join(VENDOR_TO));
+}
+for (const file of files(OUT).filter((f) => /\.(js|html|json|css)$/.test(f))) {
+  if (readFileSync(join(OUT, file), 'utf8').includes(VENDOR_FROM)) {
+    fail(`${file} still points at ${VENDOR_FROM}`);
+  }
+}
 
 const index = join(OUT, 'index.html');
 const html = readFileSync(index, 'utf8');
