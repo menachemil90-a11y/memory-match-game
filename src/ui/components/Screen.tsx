@@ -29,15 +29,53 @@ export function Screen({ children, title, showBack, headerRight, scroll = false 
   const hasBack = showBack ?? title !== undefined;
   const hasHeader = title !== undefined || hasBack || headerRight !== undefined;
 
+  const header = hasHeader ? (
+    <View style={styles.header}>
+      <View style={styles.headerSide}>
+        {hasBack ? (
+          <IconButton
+            icon="arrow-back"
+            accessibilityLabel={t('common.back')}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+          />
+        ) : null}
+      </View>
+      {title ? (
+        <AppText
+          variant="title"
+          color={colors.textOnDark}
+          align="center"
+          numberOfLines={1}
+          accessibilityRole="header"
+          style={styles.title}
+        >
+          {title}
+        </AppText>
+      ) : (
+        <View style={styles.title} />
+      )}
+      <View style={[styles.headerSide, styles.headerRight]}>{headerRight}</View>
+    </View>
+  ) : null;
+
+  // A scrolling screen scrolls its header too. The header has no background of
+  // its own, so content scrolling under a fixed header would be cut off at an
+  // invisible line in the middle of the gradient.
   const body = scroll ? (
     <ScrollView
       contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + spacing.xl }]}
       showsVerticalScrollIndicator={false}
     >
+      {header}
       {children}
     </ScrollView>
   ) : (
-    <View style={[styles.content, { paddingBottom: insets.bottom + spacing.lg }]}>{children}</View>
+    <>
+      {header}
+      <View style={[styles.content, { paddingBottom: insets.bottom + spacing.lg }]}>
+        {children}
+      </View>
+    </>
   );
 
   return (
@@ -52,34 +90,6 @@ export function Screen({ children, title, showBack, headerRight, scroll = false 
           },
         ]}
       >
-        {hasHeader ? (
-          <View style={styles.header}>
-            <View style={styles.headerSide}>
-              {hasBack ? (
-                <IconButton
-                  icon="arrow-back"
-                  accessibilityLabel={t('common.back')}
-                  onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
-                />
-              ) : null}
-            </View>
-            {title ? (
-              <AppText
-                variant="title"
-                color={colors.textOnDark}
-                align="center"
-                numberOfLines={1}
-                accessibilityRole="header"
-                style={styles.title}
-              >
-                {title}
-              </AppText>
-            ) : (
-              <View style={styles.title} />
-            )}
-            <View style={[styles.headerSide, styles.headerRight]}>{headerRight}</View>
-          </View>
-        ) : null}
         {body}
       </View>
     </LinearGradient>

@@ -11,11 +11,6 @@ import { colors, radii, shadows, spacing } from '@/ui/theme';
 
 /** Screens shorter than this (in dp) get the compact home layout. */
 const COMPACT_HEIGHT = 720;
-/**
- * Shorter still (e.g. a phone browser, whose address bar and our download bar
- * take ~130 dp): smaller buttons and gaps, so the whole menu fits without scrolling.
- */
-const TIGHT_HEIGHT = 600;
 /** Height of the web game's extra home button and its gap. */
 const WEB_EXTRA_HEIGHT = 90;
 
@@ -40,13 +35,11 @@ function Logo({ scale = 1 }: { scale?: number }) {
 
 export default function HomeScreen() {
   const { t } = useTranslation();
-  // Short screens (e.g. 360×640 dp, or tall system bars) get a smaller hero, very
-  // short ones smaller buttons too; the screen scrolls only as a last resort.
+  // Short screens (e.g. 360×640 dp, or tall system bars) get a smaller hero, and
+  // the screen scrolls as a last resort so the tagline never hides behind a button.
   // The web game has one more button (Download the app).
-  const height = useScreenSize().height - (capabilities.webShell ? WEB_EXTRA_HEIGHT : 0);
-  const compact = height < COMPACT_HEIGHT;
-  const tight = height < TIGHT_HEIGHT;
-  const buttonSize = tight ? 'md' : 'lg';
+  const compact =
+    useScreenSize().height < COMPACT_HEIGHT + (capabilities.webShell ? WEB_EXTRA_HEIGHT : 0);
 
   return (
     <Screen
@@ -60,8 +53,8 @@ export default function HomeScreen() {
         />
       }
     >
-      <View style={[styles.hero, compact && styles.heroCompact, tight && styles.heroTight]}>
-        <Logo scale={tight ? 0.6 : compact ? 0.75 : 1} />
+      <View style={[styles.hero, compact && styles.heroCompact]}>
+        <Logo scale={compact ? 0.75 : 1} />
         <AppText
           variant={compact ? 'title' : 'display'}
           color={colors.textOnDark}
@@ -75,14 +68,11 @@ export default function HomeScreen() {
         </AppText>
       </View>
 
-      <View
-        style={[styles.buttons, compact && styles.buttonsCompact, tight && styles.buttonsTight]}
-      >
+      <View style={[styles.buttons, compact && styles.buttonsCompact]}>
         <GameButton
           label={t('home.solo')}
           icon="person"
           variant="primary"
-          size={buttonSize}
           onPress={() =>
             openAppFeature(t('home.solo'), { pathname: '/boards', params: { mode: 'solo' } })
           }
@@ -91,7 +81,6 @@ export default function HomeScreen() {
           label={t('home.twoPlayers')}
           icon="people"
           variant="danger"
-          size={buttonSize}
           onPress={() =>
             openAppFeature(t('home.twoPlayers'), { pathname: '/boards', params: { mode: 'local' } })
           }
@@ -100,20 +89,16 @@ export default function HomeScreen() {
           label={t('home.online')}
           icon="globe-outline"
           variant="info"
-          size={buttonSize}
           onPress={() => router.push('/online')}
         />
         <GameButton
           label={t('home.myBoards')}
           icon="images"
           variant="success"
-          size={buttonSize}
           onPress={() => openAppFeature(t('home.myBoards'), '/my-boards')}
         />
         {/* Web game: the way to the full game, impossible to miss. */}
-        {capabilities.webShell ? (
-          <DownloadAppButton size={buttonSize} style={styles.download} />
-        ) : null}
+        {capabilities.webShell ? <DownloadAppButton style={styles.download} /> : null}
       </View>
     </Screen>
   );
@@ -122,7 +107,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   hero: {
     // Takes the free space, but never less than its content: squeezed, the
-    // centered title would spill upward and be cut off under the header.
+    // centered title would spill upward over the header.
     flexGrow: 1,
     flexShrink: 0,
     alignItems: 'center',
@@ -133,9 +118,6 @@ const styles = StyleSheet.create({
   heroCompact: {
     gap: spacing.xs,
     paddingVertical: spacing.sm,
-  },
-  heroTight: {
-    paddingTop: 0,
   },
   logo: {
     marginBottom: spacing.md,
@@ -170,9 +152,6 @@ const styles = StyleSheet.create({
   },
   buttonsCompact: {
     gap: spacing.md,
-  },
-  buttonsTight: {
-    gap: spacing.sm,
   },
   download: {
     marginTop: spacing.sm,
