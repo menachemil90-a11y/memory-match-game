@@ -536,3 +536,75 @@ The website itself is **not** built yet.
 - **Test APK build 34 — success** (Gradle 21 min): release `apk-0.3.0-build34`. Version
   0.3.0 → it needs this APK (build 28 gets no over-the-air update for it; its in-app
   "New version available" dialog offers build 34).
+
+## 13. Session log — the web game (session 5, 2026-11-19)
+
+Owner's goal: an invited friend taps the link and plays against the host **in the browser** —
+no download, no account. Same codebase (Expo web export), same look; only online play works
+there, everything else points to the Android app. Live at
+**https://menachemil90-a11y.github.io/memory-match-game/**.
+
+**Platform separation (at the source, no try/catch layers):**
+
+- `src/lib/platform/capabilities(.web).ts`: `appFeatures`, `haptics`, `appUpdates`, `webShell`.
+- Storage: SQLite on the web needs COOP/COEP headers that GitHub Pages can't send →
+  `kvStorage.web.ts` (localStorage; memory for the visit if the browser blocks storage) also
+  holds the anonymous Supabase session; `db/index.web.ts` has no database. `build:web` fails if
+  SQLite ever reaches the web bundle (verified: no SQLite, expo-updates, expo-application or
+  haptics modules in it).
+- Web files: custom-board hooks (`useCustomGameBoards.web.ts`, no photo boards), host photo
+  upload (`hostPhotoRoom.web.ts`, never uploads), `UpdatePrompt.web.tsx` /
+  `UpdatesSection.web.tsx` (the site is always the newest version), `shareInvite.web.ts` (Web
+  Share sheet, else copy).
+- App-only screens (game, levels, results, setup, my-boards/*) are inside
+  `Stack.Protected guard={capabilities.appFeatures}`: not reachable on the web, even by URL.
+- Version gate: the web bundle reports the app version (0.3.0), so it passes
+  `photo_rooms_min_version`.
+
+**Web shell & UX:** phone-width column centered on desktops (`WebShell.web.tsx`; screens size
+from it via `useScreenSize`); "Download the app" bar on every screen (in the layout, never over
+the board); big download button on home; "Play more in the app" on online results;
+"Available in the app" popup for Solo / 2 Players / My Boards with a real `<a href>` download
+link (iPhone: "Android only for now — online play works here", no APK link). Settings on the
+web: sound, music, about only. One link config: `src/lib/links.ts` (`WEB_GAME_URL`,
+`APP_DOWNLOAD_URL`, `ANDROID_PACKAGE`).
+
+**Invites:** the link is `WEB_GAME_URL/join/?c=CODE` (the same address as the old invite
+page, so links already sent keep working) and goes straight into that room's join flow
+(`src/app/join.tsx`). New invite text ("…play with me right in your browser — no download
+needed: LINK (Room code: CODE)"). On Android browsers a small "Have the app? Open in app"
+(intent link, falls back to the web game). Open Graph tags + 1200×630 preview image +
+touch icon (`public/`, brand script).
+
+**Build & hosting:** `npm run build:web` (`scripts/build-web.mjs`): export under
+`/memory-match-game` (web exports only — native builds and OTA never get a base path), an
+`index.html` per fixed route (HTTP 200, so link previews work; `join/` included), `404.html`
+for room links opened fresh (GitHub Pages' SPA fallback), and checks. The old `site/` page,
+`pages.yml` and `ci.yml` are replaced by **`web.yml`**: check → build → Playwright E2E
+(local build + live game server) → deploy Pages (main only) → the same E2E against the live
+site.
+
+**Bugs found and fixed on the way:**
+
+- Online results vanished for the player still there when the opponent went back to the
+  menu (room closed → "This game has ended"): the results now stay, with "<name> has left the
+  game." instead of Rematch (app and web). Found by the two-browser E2E test.
+- Nickname field overflowed its card in browsers (CSS `min-width: auto` on a text input in a
+  flex row) → `minWidth: 0`.
+- Accessibility: the active player was shown by color only → player panels now say
+  "playing now" (also what the E2E test reads).
+
+**Tests:** Jest +27 (capabilities, web storage fallback, template/links consistency, popups,
+home on web/app/iPhone, join route, share on web, user-agent detection, link buttons, player
+panel label, results after the opponent left). Playwright (`e2e/web`, 360×800 and 1280×800):
+site tests (download links, every app-only popup, protected URLs, settings, invite links old
+and new, link previews, 404 fallback, Android intent, iPhone, desktop column) and, with
+`E2E_ONLINE=1`, two-browser online games against the live server: full game from an invite
+link + rematch, join by typed code, room link opened fresh + reload mid-game, and a web guest
+seeing a host's photo cards (skipped until migration 06 is applied). Every test fails on
+console errors.
+
+**APK releases:** now published as the repository's **latest** release with a stable
+`memory-match.apk` asset next to the versioned file, so
+`https://github.com/menachemil90-a11y/memory-match-game/releases/latest/download/memory-match.apk`
+is always the newest test APK (the workflow checks it after publishing).
