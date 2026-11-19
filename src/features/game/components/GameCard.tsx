@@ -249,7 +249,12 @@ function GameCardImpl({
           ]}
         >
           {image.kind === 'photo' ? (
-            <Image source={image.source} style={StyleSheet.absoluteFill} contentFit="cover" />
+            <Image
+              source={image.source}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              cachePolicy={image.ephemeral ? 'memory' : undefined}
+            />
           ) : (
             <Image
               source={image.source}

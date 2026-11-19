@@ -23,10 +23,13 @@ export const HOST = '11111111-1111-4111-8111-111111111111';
 export const GUEST = '22222222-2222-4222-8222-222222222222';
 export const STRANGER = '33333333-3333-4333-8333-333333333333';
 export const VERSION = '0.1.0';
+/** First app version that can show photo rooms. */
+export const PHOTO_VERSION = '0.3.0';
 
 const SUPABASE_STUBS = `
   create role anon nologin;
   create role authenticated nologin;
+  create role service_role nologin;
   create schema extensions;
   create schema auth;
   create function auth.uid() returns uuid language sql stable as $$
@@ -39,6 +42,28 @@ const SUPABASE_STUBS = `
   alter default privileges in schema public grant all on tables to anon, authenticated;
   alter default privileges in schema public grant all on sequences to anon, authenticated;
   alter default privileges in schema public grant all on functions to anon, authenticated;
+  -- Supabase Storage: the API runs object queries as the caller's role, so
+  -- storage.objects RLS decides who may upload, read (sign URLs) and delete.
+  create schema storage;
+  grant usage on schema storage to anon, authenticated, service_role;
+  create table storage.buckets (
+    id text primary key,
+    name text not null,
+    public boolean default false,
+    file_size_limit bigint,
+    allowed_mime_types text[]
+  );
+  create table storage.objects (
+    id uuid primary key default gen_random_uuid(),
+    bucket_id text references storage.buckets (id),
+    name text not null,
+    owner uuid,
+    created_at timestamptz not null default now(),
+    unique (bucket_id, name)
+  );
+  alter table storage.objects enable row level security;
+  grant select, insert, update, delete on storage.objects to anon, authenticated, service_role;
+  grant usage on schema public to service_role;
 `;
 
 export async function startTestServer() {
@@ -72,6 +97,16 @@ export async function startTestServer() {
       }
     });
 
+  const asRole = (role, sql, params = []) =>
+    serial(async () => {
+      await db.exec(`set role ${role}`);
+      try {
+        return (await db.query(sql, params)).rows;
+      } finally {
+        await db.exec('reset role');
+      }
+    });
+
   const asAnon = (sql) =>
     serial(async () => {
       await db.exec('set role anon');
@@ -85,6 +120,8 @@ export async function startTestServer() {
   return {
     /** SQL as a visitor who is not signed in. */
     asAnon,
+    /** SQL as another database role (e.g. the Edge Functions' service_role). */
+    asRole,
     /** SQL as the database owner (setup / time travel). */
     admin: (sql, params = []) => serial(async () => (await db.query(sql, params)).rows),
     /** SQL as a signed-in anonymous user, through RLS and grants. */

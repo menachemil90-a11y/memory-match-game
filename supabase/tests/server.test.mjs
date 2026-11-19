@@ -158,7 +158,7 @@ describe('rooms', () => {
       /permission denied/,
     );
     expect(await errorOf(server.asAnon(`select * from public.rooms`))).toMatch(/permission denied/);
-    expect(await server.asAnon(`select key from public.app_config order by key`)).toHaveLength(3);
+    expect(await server.asAnon(`select key from public.app_config order by key`)).toHaveLength(4);
   });
 
   it('API roles can only read tables: no write grants despite Supabase default privileges', async () => {

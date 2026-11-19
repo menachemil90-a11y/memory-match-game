@@ -10,6 +10,9 @@ const KNOWN = [
   'nickname_not_allowed',
   'invalid_nickname',
   'network',
+  'photos_missing',
+  'too_many_rooms',
+  'not_available',
 ] as const;
 
 /** Turns server/network errors into friendly messages. */

@@ -100,7 +100,7 @@ _Snapshot at the end of the first build session (all six phases of `docs/BRIEF.m
 The step-by-step plan to launch is **`docs/RELEASE_PLAN.md`** (dates, who does what).
 
 1. ~~GitHub Actions blocked~~ — resolved: repo is **public** for now (never commit secrets or personal data). The owner wants it **private again before launch** → builds move to EAS first (RELEASE_PLAN §10).
-2. ~~Supabase project~~ — **live**: `memory-match` (`idarczmhhhkazbuewwao`, eu-central-1, free plan), migrations 1–4 applied by the owner, anonymous sign-ins **on** — all verified read-only (2026-11-18). **Still open: owner to paste migration 05** (grant hardening) in the SQL Editor — re-checked: not applied yet.
+2. ~~Supabase project~~ — **live**: `memory-match` (`idarczmhhhkazbuewwao`, eu-central-1, free plan), migrations 1–4 applied by the owner, anonymous sign-ins **on** — all verified read-only (2026-11-18). **Still open: owner to paste migration 05** (grant hardening) **and migration 06** (photo boards online, §12) in the SQL Editor.
 3. **Final app name and package ID** — still placeholders (`Memory Match`, `com.placeholder.memorymatch`, scheme `memorymatch`). Owner gives them before the first upload (target Dec 1); the package can never change.
 4. **Privacy policy hosting** — text ready (`docs/PRIVACY_POLICY.md`, placeholders only — the repo is public). Owner hosts it on Google Sites with name/email/date filled in there; then set `PRIVACY_POLICY_URL` in `src/lib/appInfo.ts`.
 5. ~~Expo account + token~~ — **done**: owner's free Expo account, token in the GitHub secret `EXPO_TOKEN`; EAS project linked (`extra.eas.projectId` 5b0d0ba0-eb49-40c4-8881-b13daffe2533), over-the-air updates on (channel `preview` for test phones, `production` for Play).
@@ -461,3 +461,74 @@ air to `preview` (build 28 gets the "Update available" dialog).
   board (level screen → "Edit board"; long-press still opens the editor). The button bar
   stays only on the My Boards management screen (edit + delete). Flow test step 8 now
   checks the picker tile has no buttons and opens the board's levels. Shipped over the air.
+
+## 12. Session log — photo boards in online games (session 5, 2026-11-19)
+
+Owner approved the design exactly as proposed: only the **host** (who has the app) can choose
+a photo board; the joining player never uploads; only the small cropped cards go to a
+**private** Supabase Storage bucket readable only by the two players of that room; deleted
+when the room closes and at the latest after 24 hours; a confirmation window first;
+privacy policy + Data Safety updated; Families-friendly (no public links, no sharing outside
+the room). Planned next: a **website** (same codebase, Expo web on GitHub Pages at the invite
+link) where an invited friend plays in the browser without installing — so the guest side
+of photo rooms was built to work there too (signed URLs, no native modules on that path).
+The website itself is **not** built yet.
+
+**Server — `supabase/migrations/20261119000006_photo_rooms.sql`:**
+
+- Rooms get status `preparing` (host still uploading; nobody can join), `photo_ids`
+  (`p1…pN`, N = pairs of the level) and `card_back`.
+- `create_photo_room(level, card_back, name, avatar, version)` → room in `preparing`;
+  `photo_room_ready(room)` → checks every card is in Storage, then `waiting`. Soft cap of 20
+  photo rooms per player per hour (`too_many_rooms`). Photo rooms need app ≥ **0.3.0**
+  (`app_config.photo_rooms_min_version`), so a guest on an old app gets "Please update"
+  instead of an empty board.
+- Dealing refactored into `private.deal_images(key, images, level)` (same algorithm);
+  photo rooms keep their no-repeat history under `room:<id>`, removed with the room.
+- Private bucket `room-photos` (JPEG only, ≤ 256 KB). Storage RLS: **insert** only by the
+  host, only while `preparing`, only the expected names `<room>/pK.jpg`; **select** (signed
+  URLs) only the two players, never for cards older than 24 h, the guest loses access when
+  the room closes; **delete** only the host.
+- Deletion: `expired_room_photos()` (service role only) lists cards whose room is closed or
+  gone, or older than 24 h; pg_cron every 5 minutes calls the Edge Function
+  **`room-photos-cleanup`**, which deletes them through the Storage API (SQL deletes would
+  leave the files behind). The host's app also deletes them right away when it closes the
+  room. `create_room`, `join_room`, `leave_room`, `cleanup_stale_rooms` updated for
+  `preparing`.
+- Tests: new `supabase/tests/photo-rooms.test.mjs` (20 tests) on PGlite with Storage
+  stand-ins in the harness (buckets/objects + RLS, `service_role`): upload rules, who sees
+  the cards, 24 h cap, guest losing access on close, old-app guests, deal + rematch history,
+  every deletion case, function grants.
+
+**App (version bumped to 0.3.0 — runtime changes, needs the new APK):**
+
+- Board picker in Play Online lists **My photo boards** (no Create tile; hidden on web).
+- Level screen: a photo board shows the **consent window** ("Play with your photos?": how
+  many cards, who can see them, deleted on close / within 24 h) → upload with progress
+  "Sending photo cards… 2 of 6" → waiting room with a 🔒 note. Exactly one card per pair is
+  sent, picked at random (crypto RNG), re-encoded at 480 px / JPEG 75 % (no metadata).
+  Any failure closes the room and deletes what was uploaded.
+- Both players load the cards through **signed URLs** (2 h, re-signed after 45 min on a
+  rematch) — the same code a web player will use. Images are prefetched before the deal and
+  shown with `cachePolicy: 'memory'` (`BoardImage.ephemeral`), so the friend's photos are
+  never written to the device's image cache. Loading screen + "Try again" if they can't load.
+- `OnlineRoomGame` picks the board (built-in or photo room) for `OnlineGameView`/results.
+- Errors: `photos_missing`, `too_many_rooms`, and `not_available` (server without the
+  migration: "Online games with photos aren't available yet").
+- In-app privacy text, `docs/PRIVACY_POLICY.md` (new section) and `docs/DATA_SAFETY.md`
+  (Photos → Collected **yes**, ephemeral, optional, not shared; IARC note) updated.
+- Tests: store (upload order/paths/progress, failure cleanup, signed-URL board, re-sign
+  throttle, failed → retry, host-only deletion, forfeit keeps cards), consent screen (Cancel
+  sends nothing; confirm creates; built-in boards skip it), room-game loading/retry.
+
+**Deployment status:**
+
+- ✅ Edge Function `room-photos-cleanup` **deployed** to `memory-match` (v1, JWT verification
+  off — it only deletes what is already due).
+- ❌ **Migration 06 not applied**: the Supabase connector's database connection was refused
+  this session (management API works, SQL doesn't). **Owner: paste
+  `supabase/migrations/20261119000006_photo_rooms.sql` in the SQL Editor** (migration 05 is
+  independent and still open too). Until then the app says photo games "aren't available
+  yet"; built-in online games work as before.
+
+`npm run check`: **241 Jest + 57 server tests** pass; Android export passes.

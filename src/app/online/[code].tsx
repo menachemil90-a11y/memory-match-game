@@ -13,12 +13,13 @@ import Animated, {
 import { useTranslation } from 'react-i18next';
 
 import { AVATAR_SOURCES } from '@/features/boards/builtin';
-import { OnlineGameView } from '@/features/online/OnlineGameView';
+import { OnlineRoomGame } from '@/features/online/OnlineRoomGame';
 import { OnlineProfileCard } from '@/features/online/components/OnlineProfileCard';
 import { APP_SCHEME, isOnlineConfigured } from '@/features/online/config';
 import { checkNickname } from '@/features/online/nickname';
 import { useOnline } from '@/features/online/onlineStore';
 import { inviteLink, isValidRoomCode, normalizeRoomCode } from '@/features/online/roomCode';
+import { isPhotoRoom } from '@/features/online/roomPhotos';
 import { useOnlineError } from '@/features/online/useOnlineError';
 import { usePlayersStore } from '@/features/players/playersStore';
 import { releasesRepo } from '@/features/updates/updatesStore';
@@ -89,8 +90,13 @@ export default function OnlineRoomScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, inThisRoom]);
 
-  if (inThisRoom && room.status !== 'waiting' && room.status !== 'closed') {
-    return <OnlineGameView key={room.game_number} room={room} seat={seat} />;
+  if (
+    inThisRoom &&
+    room.status !== 'waiting' &&
+    room.status !== 'closed' &&
+    room.status !== 'preparing'
+  ) {
+    return <OnlineRoomGame room={room} seat={seat} />;
   }
 
   if (inThisRoom && room.status === 'waiting') {
@@ -117,6 +123,11 @@ export default function OnlineRoomScreen() {
             <AppText variant="body" color={colors.textMuted} align="center">
               {t('online.waitingHint')}
             </AppText>
+            {isPhotoRoom(room) ? (
+              <AppText variant="caption" color={colors.textMuted} align="center">
+                {t('online.photoRoomNote')}
+              </AppText>
+            ) : null}
           </View>
           <GameButton
             label={t('online.invite')}
@@ -164,6 +175,10 @@ export default function OnlineRoomScreen() {
         ) : room?.code === code && room.status === 'closed' ? (
           <AppText variant="heading" color={colors.textOnDark} align="center">
             {t('online.roomClosed')}
+          </AppText>
+        ) : room?.code === code && room.status === 'preparing' ? (
+          <AppText variant="heading" color={colors.textOnDark} align="center">
+            {t('online.roomPreparing')}
           </AppText>
         ) : (
           <>

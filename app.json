@@ -2,7 +2,7 @@
   "expo": {
     "name": "Memory Match",
     "slug": "memory-match-game",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "scheme": "memorymatch",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

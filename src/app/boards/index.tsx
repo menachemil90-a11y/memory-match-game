@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -34,7 +34,9 @@ export default function BoardPickerScreen() {
   const tileWidth = useTileWidth();
   const customBoards = useCustomGameBoards();
   const status = useCustomBoardsStatus();
-  const allowCustom = mode !== 'online';
+  // Online, only a host with the app can choose a photo board (a web player can't).
+  const online = mode === 'online';
+  const allowCustom = !online || (Platform.OS !== 'web' && customBoards.length > 0);
 
   const open = (board: Board) => {
     if (mode === 'online') {
@@ -57,9 +59,11 @@ export default function BoardPickerScreen() {
           {section(t('boards.customSection'))}
           {status === 'failed' ? <BoardsLoadError /> : null}
           <View style={styles.grid}>
-            <Animated.View entering={FadeInDown.duration(300)}>
-              <CreateBoardTile width={tileWidth} onPress={() => router.push('/my-boards/new')} />
-            </Animated.View>
+            {online ? null : (
+              <Animated.View entering={FadeInDown.duration(300)}>
+                <CreateBoardTile width={tileWidth} onPress={() => router.push('/my-boards/new')} />
+              </Animated.View>
+            )}
             {customBoards.map((board, i) => (
               <Animated.View key={board.id} entering={FadeInDown.delay((i + 1) * 40).duration(300)}>
                 <BoardTile

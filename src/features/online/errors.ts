@@ -17,9 +17,16 @@ export const SERVER_ERRORS = [
   'not_expired',
   'opponent_still_connected',
   'game_not_finished',
+  'photos_missing',
+  'too_many_rooms',
 ] as const;
 
-export type ServerErrorCode = (typeof SERVER_ERRORS)[number] | 'network' | 'unknown';
+/**
+ * `not_available`: the server doesn't offer this feature yet (function or
+ * storage bucket missing — e.g. a migration not applied).
+ */
+export type ServerErrorCode =
+  (typeof SERVER_ERRORS)[number] | 'network' | 'not_available' | 'unknown';
 
 export class OnlineError extends Error {
   constructor(
@@ -39,6 +46,9 @@ export function toOnlineError(error: unknown): OnlineError {
       : String(error);
   const code = SERVER_ERRORS.find((c) => message.includes(c));
   if (code) return new OnlineError(code, message);
+  if (/PGRST202|Could not find the function|Bucket not found/i.test(message)) {
+    return new OnlineError('not_available', message);
+  }
   if (/network|fetch|timeout|failed to fetch|connection/i.test(message)) {
     return new OnlineError('network', message);
   }

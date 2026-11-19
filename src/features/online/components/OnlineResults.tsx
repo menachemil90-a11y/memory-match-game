@@ -6,7 +6,8 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
-import { AVATAR_SOURCES, getBuiltinBoard } from '@/features/boards/builtin';
+import { AVATAR_SOURCES } from '@/features/boards/builtin';
+import type { BoardImage } from '@/features/boards/types';
 import { feedback } from '@/lib/feedback';
 import { heroEntering } from '@/ui/animation/motion';
 import { AppText, Confetti, GameButton } from '@/ui/components';
@@ -17,7 +18,16 @@ import { useOnline } from '../onlineStore';
 import type { RoomRow, Seat } from '../room';
 
 /** End-of-game panel for online play: result, both piles, rematch. */
-export function OnlineResults({ room, seat }: { room: RoomRow; seat: Seat }) {
+export function OnlineResults({
+  room,
+  seat,
+  images,
+}: {
+  room: RoomRow;
+  seat: Seat;
+  /** The game's card images by id (built-in board or the photo room's cards). */
+  images: ReadonlyMap<string, BoardImage>;
+}) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const act = useOnline((s) => s.act);
@@ -25,8 +35,6 @@ export function OnlineResults({ room, seat }: { room: RoomRow; seat: Seat }) {
   const [busy, setBusy] = useState(false);
   const other = (1 - seat) as Seat;
   const otherName = room.players[other]?.name ?? '';
-  const board = getBuiltinBoard(room.board_id);
-  const images = new Map((board?.images ?? []).map((i) => [i.id, i]));
   const won = room.winner === seat;
   const tie = room.winner === -1;
 
@@ -93,7 +101,12 @@ export function OnlineResults({ room, seat }: { room: RoomRow; seat: Seat }) {
                 if (!img) return null;
                 return (
                   <View key={id} style={[styles.mini, { backgroundColor: img.background }]}>
-                    <Image source={img.source} style={styles.miniImg} />
+                    <Image
+                      source={img.source}
+                      style={img.kind === 'photo' ? StyleSheet.absoluteFill : styles.miniImg}
+                      contentFit={img.kind === 'photo' ? 'cover' : 'contain'}
+                      cachePolicy={img.ephemeral ? 'memory' : undefined}
+                    />
                   </View>
                 );
               })}
@@ -177,6 +190,7 @@ const styles = StyleSheet.create({
     borderColor: colors.card.border,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   miniImg: { width: 26, height: 26 },
   actions: { gap: spacing.md },

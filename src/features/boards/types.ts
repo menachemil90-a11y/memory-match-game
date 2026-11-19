@@ -16,6 +16,11 @@ export interface BoardImage {
   kind: 'art' | 'photo';
   /** Face background color (art only). */
   background: string;
+  /**
+   * Someone else's photo shown only for one online game: kept in memory,
+   * never written to this device's image cache.
+   */
+  ephemeral?: boolean;
 }
 
 export interface Board {

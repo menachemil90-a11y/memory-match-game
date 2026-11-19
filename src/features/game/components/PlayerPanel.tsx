@@ -127,6 +127,7 @@ export const PlayerPanel = memo(function PlayerPanel({
               source={img.source}
               style={img.kind === 'photo' ? StyleSheet.absoluteFill : styles.pileArt}
               contentFit={img.kind === 'photo' ? 'cover' : 'contain'}
+              cachePolicy={img.ephemeral ? 'memory' : undefined}
             />
           </View>
         ))}

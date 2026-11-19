@@ -13,8 +13,8 @@ import { useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
-import { CARD_BACK_SOURCES, getBuiltinBoard } from '@/features/boards/builtin';
-import type { BoardImage } from '@/features/boards/types';
+import { CARD_BACK_SOURCES } from '@/features/boards/builtin';
+import type { Board, BoardImage } from '@/features/boards/types';
 import {
   GameCard,
   type CardEffect,
@@ -50,8 +50,11 @@ function measure(ref: ViewRef | null) {
 
 const PLAYER_COLORS = ['coral', 'sky'] as const;
 
-/** One online game (a new instance per game number, so rematches start fresh). */
-export function OnlineGameView({ room, seat }: { room: RoomRow; seat: Seat }) {
+/**
+ * One online game (a new instance per game number, so rematches start fresh).
+ * `board` is the built-in board, or the photo room's cards (see OnlineRoomGame).
+ */
+export function OnlineGameView({ room, seat, board }: { room: RoomRow; seat: Seat; board: Board }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
@@ -61,9 +64,8 @@ export function OnlineGameView({ room, seat }: { room: RoomRow; seat: Seat }) {
   const connection = useOnline((s) => s.connection);
   const opponentPresent = useOnline((s) => s.opponentPresent);
 
-  const board = getBuiltinBoard(room.board_id);
-  const images = useMemo(() => new Map((board?.images ?? []).map((i) => [i.id, i])), [board]);
-  const placeholder = board?.images[0];
+  const images = useMemo(() => new Map(board.images.map((i) => [i.id, i])), [board]);
+  const placeholder = board.images[0];
   const other = (1 - seat) as Seat;
   const profiles: PlayerProfile[] = room.players.map((p, i) => ({
     name: p.name,
@@ -272,7 +274,7 @@ export function OnlineGameView({ room, seat }: { room: RoomRow; seat: Seat }) {
     setGridSize((p) => (p && p.width === width && p.height === height ? p : { width, height }));
   };
 
-  if (!board || !placeholder) return null;
+  if (!placeholder) return null;
 
   const timerFor = (s: Seat) =>
     room.status === 'playing' &&
@@ -432,7 +434,9 @@ export function OnlineGameView({ room, seat }: { room: RoomRow; seat: Seat }) {
         />
       ) : null}
 
-      {room.status === 'finished' ? <OnlineResults room={room} seat={seat} /> : null}
+      {room.status === 'finished' ? (
+        <OnlineResults room={room} seat={seat} images={images} />
+      ) : null}
 
       <Dialog
         visible={leaveOpen}

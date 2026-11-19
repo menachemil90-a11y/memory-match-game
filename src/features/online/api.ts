@@ -3,6 +3,7 @@ import type { LevelId } from '@/game';
 import { APP_VERSION } from './config';
 import { OnlineError, toOnlineError } from './errors';
 import type { RoomRow } from './room';
+import { ROOM_PHOTOS_BUCKET, SIGNED_URL_SECONDS } from './roomPhotos';
 import { getSupabase } from './supabaseClient';
 
 function supabase() {
@@ -52,6 +53,15 @@ export async function fetchRoom(roomId: string): Promise<RoomRow | null> {
 }
 
 export const onlineApi = {
+  createPhotoRoom: (levelId: LevelId, cardBack: string, name: string, avatar: string) =>
+    rpc<RoomRow>('create_photo_room', {
+      p_level_id: levelId,
+      p_card_back: cardBack,
+      p_name: name,
+      p_avatar: avatar,
+      p_app_version: APP_VERSION,
+    }),
+  photoRoomReady: (roomId: string) => rpc<RoomRow>('photo_room_ready', { p_room_id: roomId }),
   createRoom: (boardId: string, levelId: LevelId, name: string, avatar: string) =>
     rpc<RoomRow>('create_room', {
       p_board_id: boardId,
@@ -79,3 +89,33 @@ export const onlineApi = {
   requestRematch: (roomId: string) => rpc<RoomRow>('request_rematch', { p_room_id: roomId }),
   serverTime: () => rpc<string>('server_time', {}),
 };
+
+/** Host: uploads one card (JPEG bytes) of a photo room being prepared. */
+export async function uploadRoomPhoto(path: string, jpeg: ArrayBuffer): Promise<void> {
+  const { error } = await supabase()
+    .storage.from(ROOM_PHOTOS_BUCKET)
+    .upload(path, jpeg, { contentType: 'image/jpeg', upsert: false, cacheControl: '0' });
+  if (error) throw toOnlineError(error);
+}
+
+/** Both players: short-lived signed URLs of the room's cards (path → URL). */
+export async function signRoomPhotos(paths: string[]): Promise<Map<string, string>> {
+  const { data, error } = await supabase()
+    .storage.from(ROOM_PHOTOS_BUCKET)
+    .createSignedUrls(paths, SIGNED_URL_SECONDS);
+  if (error) throw toOnlineError(error);
+  const urls = new Map<string, string>();
+  for (const entry of data) {
+    if (entry.error || !entry.path || !entry.signedUrl) {
+      throw new OnlineError('unknown', `Could not sign ${entry.path ?? '?'}: ${entry.error}`);
+    }
+    urls.set(entry.path, entry.signedUrl);
+  }
+  return urls;
+}
+
+/** Host: deletes the room's cards right away (the server also does it on its own). */
+export async function removeRoomPhotos(paths: string[]): Promise<void> {
+  const { error } = await supabase().storage.from(ROOM_PHOTOS_BUCKET).remove(paths);
+  if (error) throw toOnlineError(error);
+}

@@ -7,7 +7,8 @@ export interface RoomRow {
   code: string;
   board_id: string;
   level_id: LevelId;
-  status: 'waiting' | 'playing' | 'finished' | 'closed';
+  /** 'preparing' = photo room whose host is still uploading the cards. */
+  status: 'preparing' | 'waiting' | 'playing' | 'finished' | 'closed';
   host_id: string;
   guest_id: string | null;
   players: { name: string; avatar: AvatarId }[];
@@ -31,6 +32,10 @@ export interface RoomRow {
   guest_seen_at: string | null;
   version: number;
   updated_at: string;
+  /** Photo room: the card image ids ('p1' …); null for built-in boards. */
+  photo_ids: string[] | null;
+  /** Photo room: the host board's card back (may be unknown to this app). */
+  card_back: string | null;
 }
 
 export type Seat = 0 | 1;

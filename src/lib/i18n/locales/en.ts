@@ -279,6 +279,16 @@ const en = {
     rematchAsked: '{{name, isolate}} wants a rematch!',
     backToMenu: 'Back to menu',
     roomClosed: 'This game has ended.',
+    roomPreparing: 'This game is not ready yet.',
+    shareTitle: 'Play with your photos?',
+    shareMessage:
+      'To play online, {{count}} small cards from "{{name, isolate}}" are sent to our game server. Only you and the friend who joins this game can see them — no public links, nobody else.\n\nThey are deleted when the game closes, and always within 24 hours. The photos on your phone stay where they are.',
+    shareConfirm: 'Share and create game',
+    sharingPhotos: 'Sending photo cards… {{done}} of {{total}}',
+    photoRoomNote:
+      '🔒 Your photo cards are visible only to the friend who joins. They are deleted when the game closes.',
+    loadingPhotos: 'Getting the photos ready…',
+    photosFailed: "Couldn't load the photos. Check your internet connection.",
     errors: {
       update_required: 'Please update the app to play online.',
       room_not_found: 'No game with that code. Check the code and try again.',
@@ -286,6 +296,9 @@ const en = {
       nickname_not_allowed: "Let's pick a friendlier name.",
       invalid_nickname: 'Please choose a nickname with letters and numbers.',
       network: 'No connection. Check your internet and try again.',
+      photos_missing: "Some photo cards didn't arrive. Please try again.",
+      too_many_rooms: 'You have opened many photo games in a short time. Please try again later.',
+      not_available: "Online games with photos aren't available yet. Try a built-in board for now.",
       unknown: 'Something went wrong. Please try again.',
     },
   },
@@ -352,7 +365,7 @@ const en = {
   },
   privacy: {
     title: 'Privacy',
-    body: 'Memory Match is made for families.\n\n• Your photos never leave this phone. Custom boards are stored only on this device.\n• No account is needed to play. There are no ads and no tracking.\n• Online play uses an anonymous game ID, the nickname and avatar you choose, and the moves of the game. There is no chat.\n• Online game rooms are deleted automatically within a few hours.\n• Scores and settings are stored only on this device. "Reset scores" in Settings clears them; uninstalling the app removes everything.',
+    body: 'Memory Match is made for families.\n\n• Your photo boards are stored only on this device.\n• Online on a photo board: only if you choose it (after a confirmation) are the few small cards of that game sent to our game server. Only you and the friend who joins can see them, there are no public links, and they are deleted when the game closes — always within 24 hours. A friend who joins never uploads anything.\n• No account is needed to play. There are no ads and no tracking.\n• Online play uses an anonymous game ID, the nickname and avatar you choose, and the moves of the game. There is no chat.\n• Online game rooms are deleted automatically within a few hours.\n• Scores and settings are stored only on this device. "Reset scores" in Settings clears them; uninstalling the app removes everything.',
     full: 'Read the full privacy policy',
   },
   notFound: {
