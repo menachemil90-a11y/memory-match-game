@@ -104,12 +104,13 @@ export default function OnlineRoomScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, inThisRoom]);
 
-  if (
-    inThisRoom &&
-    room.status !== 'waiting' &&
-    room.status !== 'closed' &&
-    room.status !== 'preparing'
-  ) {
+  // The game and its results. A room the opponent closed after the game (they
+  // went back to the menu) keeps showing this player's results.
+  const gamePlayed =
+    room?.status === 'playing' ||
+    room?.status === 'finished' ||
+    (room?.status === 'closed' && room.winner !== null);
+  if (inThisRoom && gamePlayed) {
     return <OnlineRoomGame room={room} seat={seat} />;
   }
 

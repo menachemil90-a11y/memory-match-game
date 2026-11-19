@@ -434,7 +434,7 @@ export function OnlineGameView({ room, seat, board }: { room: RoomRow; seat: Sea
         />
       ) : null}
 
-      {room.status === 'finished' ? (
+      {room.status === 'finished' || room.status === 'closed' ? (
         <OnlineResults room={room} seat={seat} images={images} />
       ) : null}
 

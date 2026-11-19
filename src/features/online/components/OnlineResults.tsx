@@ -58,7 +58,10 @@ export function OnlineResults({
         : null;
   const iAsked = room.rematch.includes(seat);
   const theyAsked = room.rematch.includes(other);
-  const canRematch = room.end_reason === 'complete';
+  // The opponent went back to the menu: the room is closed, no rematch — but the
+  // results stay on screen for this player.
+  const opponentLeft = room.status === 'closed';
+  const canRematch = room.end_reason === 'complete' && !opponentLeft;
 
   return (
     <Animated.View entering={FadeIn} style={styles.backdrop}>
@@ -116,6 +119,11 @@ export function OnlineResults({
           </View>
         ))}
 
+        {opponentLeft ? (
+          <AppText variant="heading" color={palette.sun} align="center">
+            {t('online.opponentLeft', { name: otherName })}
+          </AppText>
+        ) : null}
         {canRematch && theyAsked && !iAsked ? (
           <AppText variant="heading" color={palette.sun} align="center">
             {t('online.rematchAsked', { name: otherName })}

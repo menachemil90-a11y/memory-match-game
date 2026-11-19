@@ -37,6 +37,14 @@ async function leaveToMenu(page: Page) {
   await expect(page.getByRole('button', { name: 'Play Online' })).toBeVisible();
 }
 
+/** The guest goes back to the menu first; the host still sees the results, then leaves too. */
+async function bothLeave(guest: Page, host: Page) {
+  await leaveToMenu(guest);
+  await expect(host.getByText(/has left the game\.$/)).toBeVisible();
+  await expect(host.getByRole('button', { name: 'Rematch' })).toHaveCount(0);
+  await leaveToMenu(host);
+}
+
 test('a full game from an invite link, then a rematch', async ({ browser }, testInfo) => {
   const { contexts, host, guest } = await twoPlayers(browser, testInfo);
   const hostProblems = watchConsole(host);
@@ -96,8 +104,7 @@ test('a full game from an invite link, then a rematch', async ({ browser }, test
   }
   await playToEnd([host, guest], TINY_CARDS);
 
-  await leaveToMenu(guest);
-  await leaveToMenu(host);
+  await bothLeave(guest, host);
   expect(hostProblems).toEqual([]);
   expect(guestProblems).toEqual([]);
   await Promise.all(contexts.map((c) => c.close()));
@@ -116,8 +123,7 @@ test('joining by typing the code', async ({ browser }, testInfo) => {
 
   await waitForBoard([host, guest], TINY_CARDS);
   await playToEnd([host, guest], TINY_CARDS);
-  await leaveToMenu(guest);
-  await leaveToMenu(host);
+  await bothLeave(guest, host);
   expect(problems).toEqual([]);
   await Promise.all(contexts.map((c) => c.close()));
 });
@@ -136,8 +142,7 @@ test('a room link opened fresh, and a reload during the game', async ({ browser 
   await guest.reload();
   await waitForBoard([host, guest], TINY_CARDS);
   await playToEnd([host, guest], TINY_CARDS);
-  await leaveToMenu(guest);
-  await leaveToMenu(host);
+  await bothLeave(guest, host);
   expect(problems).toEqual([]);
   await Promise.all(contexts.map((c) => c.close()));
 });

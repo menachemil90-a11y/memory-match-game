@@ -280,6 +280,7 @@ const en = {
     rematchAsked: '{{name, isolate}} wants a rematch!',
     backToMenu: 'Back to menu',
     roomClosed: 'This game has ended.',
+    opponentLeft: '{{name, isolate}} has left the game.',
     roomPreparing: 'This game is not ready yet.',
     shareTitle: 'Play with your photos?',
     shareMessage:
