@@ -68,8 +68,13 @@ export default function OnlineRoomScreen() {
   const leave = useOnline((s) => s.leave);
   const profile = usePlayersStore((s) => s.online);
   const error = useOnlineError();
-  const [busy, setBusy] = useState(false);
-  const [needsName, setNeedsName] = useState(false);
+  const joining = useOnline((s) => s.joining);
+  const inThisRoom = room?.code === code && seat !== null;
+  const canJoin = isOnlineConfigured && isValidRoomCode(code);
+  // Opened from a link without a nickname yet: ask for one right away.
+  const [needsName, setNeedsName] = useState(
+    () => !inThisRoom && canJoin && !checkNickname(profile.name).ok,
+  );
   const [copied, setCopied] = useState<'code' | 'invite' | null>(null);
   /** The room code this screen already decided about joining (see below). */
   const tried = useRef<string | null>(null);
@@ -79,32 +84,25 @@ export default function OnlineRoomScreen() {
   };
   // On a fresh invite link there is no screen to go back to: go home instead.
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
-  const inThisRoom = room?.code === code && seat !== null;
 
-  const join = async () => {
+  /** The Join button. */
+  const join = () => {
     if (!checkNickname(profile.name).ok) {
       setNeedsName(true);
       return;
     }
     setNeedsName(false);
-    setBusy(true);
-    try {
-      await joinRoom(code, profile.name, profile.avatar);
-    } catch (e) {
-      error.show(e);
-    } finally {
-      setBusy(false);
-    }
+    joinRoom(code, profile.name, profile.avatar).catch(error.show);
   };
 
-  // Opened from an invite link (or the Join button): join automatically — decided
-  // once per code, when the screen opens. Leaving the room later (Back to menu)
-  // must not join it again.
+  // Opened from an invite link (or the lobby's Join): join right away when the
+  // nickname is already known — decided once per code, when the screen opens.
+  // Leaving the room later (Back to menu) must not join it again.
   useEffect(() => {
     if (tried.current === code) return;
     tried.current = code;
-    if (inThisRoom || !isOnlineConfigured || !isValidRoomCode(code)) return;
-    void join();
+    if (inThisRoom || !canJoin || !checkNickname(profile.name).ok) return;
+    joinRoom(code, profile.name, profile.avatar).catch(error.show);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
 
@@ -201,8 +199,8 @@ export default function OnlineRoomScreen() {
             <GameButton
               label={t('online.joinButton')}
               icon="enter"
-              disabled={busy}
-              onPress={() => void join()}
+              disabled={joining}
+              onPress={join}
             />
             {/* Web game on Android: the main path is playing right here; this is for
                 friends who already have the app. */}
@@ -218,7 +216,7 @@ export default function OnlineRoomScreen() {
           </>
         )}
       </View>
-      <ProgressOverlay visible={busy} label={t('online.connecting')} progress={null} />
+      <ProgressOverlay visible={joining} label={t('online.connecting')} progress={null} />
       <Dialog
         visible={error.message !== null}
         title={error.message ?? ''}

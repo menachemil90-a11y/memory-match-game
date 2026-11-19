@@ -68,6 +68,8 @@ interface OnlineState {
   /** Loads (or re-signs, when old) the cards of the current photo room. */
   loadPhotoBoard: () => Promise<void>;
   joinRoom: (code: string, name: string, avatar: string) => Promise<RoomRow>;
+  /** A join is in progress (the room screen shows "Connecting…"). */
+  joining: boolean;
   /** Re-attach to a room this user is already in (e.g. after the app restarted). */
   attach: (room: RoomRow) => void;
   applyRoom: (room: RoomRow | null) => void;
@@ -161,6 +163,7 @@ export const useOnline = create<OnlineState>()((set, get) => {
     opponentPresent: false,
     photoBoard: null,
     photoBoardStatus: 'idle',
+    joining: false,
 
     async prepare() {
       const userId = await ensureSignedIn();
@@ -236,10 +239,15 @@ export const useOnline = create<OnlineState>()((set, get) => {
     },
 
     async joinRoom(code, name, avatar) {
-      await get().prepare();
-      const room = await onlineApi.joinRoom(code, name, avatar);
-      get().attach(room);
-      return room;
+      set({ joining: true });
+      try {
+        await get().prepare();
+        const room = await onlineApi.joinRoom(code, name, avatar);
+        get().attach(room);
+        return room;
+      } finally {
+        set({ joining: false });
+      }
     },
 
     attach(room) {
