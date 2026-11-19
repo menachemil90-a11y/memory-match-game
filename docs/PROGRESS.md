@@ -100,7 +100,7 @@ _Snapshot at the end of the first build session (all six phases of `docs/BRIEF.m
 The step-by-step plan to launch is **`docs/RELEASE_PLAN.md`** (dates, who does what).
 
 1. ~~GitHub Actions blocked~~ — resolved: repo is **public** for now (never commit secrets or personal data). The owner wants it **private again before launch** → builds move to EAS first (RELEASE_PLAN §10).
-2. ~~Supabase project~~ — **live**: `memory-match` (`idarczmhhhkazbuewwao`, eu-central-1, free plan), migrations 1–4 applied by the owner, anonymous sign-ins **on** — all verified read-only (2026-11-18). **Still open: owner to paste migration 05** (grant hardening) **and migration 06** (photo boards online, §12) in the SQL Editor. The web game (§13) is live and needs no migration.
+2. ~~Supabase project~~ — **live**: `memory-match` (`idarczmhhhkazbuewwao`, eu-central-1, free plan), migrations 1–4 applied by the owner, anonymous sign-ins **on** — all verified read-only (2026-11-18). Migrations **05** (grant hardening, applied 2026-11-18) and **06** (photo boards online, §12, applied 2026-11-19) are **applied** — verified read-only with the Supabase connector's migration list on 2026-11-19. The web game (§13) is live and needs no migration.
 3. **Final app name and package ID** — still placeholders (`Memory Match`, `com.placeholder.memorymatch`, scheme `memorymatch`). Owner gives them before the first upload (target Dec 1); the package can never change.
 4. **Privacy policy hosting** — text ready (`docs/PRIVACY_POLICY.md`, placeholders only — the repo is public). Owner hosts it on Google Sites with name/email/date filled in there; then set `PRIVACY_POLICY_URL` in `src/lib/appInfo.ts`.
 5. ~~Expo account + token~~ — **done**: owner's free Expo account, token in the GitHub secret `EXPO_TOKEN`; EAS project linked (`extra.eas.projectId` 5b0d0ba0-eb49-40c4-8881-b13daffe2533), over-the-air updates on (channel `preview` for test phones, `production` for Play).
@@ -525,11 +525,10 @@ The website itself is **not** built yet.
 
 - ✅ Edge Function `room-photos-cleanup` **deployed** to `memory-match` (v1, JWT verification
   off — it only deletes what is already due).
-- ❌ **Migration 06 not applied**: the Supabase connector's database connection was refused
-  this session (management API works, SQL doesn't). **Owner: paste
-  `supabase/migrations/20261119000006_photo_rooms.sql` in the SQL Editor** (migration 05 is
-  independent and still open too). Until then the app says photo games "aren't available
-  yet"; built-in online games work as before.
+- ✅ **Migration 06 applied** (by the owner, 2026-11-19 12:22 UTC; verified read-only from
+  the project's migration list, together with migration 05 from 2026-11-18). Photo games
+  online are live on the server. _(Earlier this section said "not applied": the connector's
+  database connection was refused that session, so the owner pasted it in the SQL Editor.)_
 
 `npm run check`: **241 Jest + 57 server tests** pass; Android export passes.
 
