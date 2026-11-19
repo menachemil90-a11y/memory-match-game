@@ -532,3 +532,7 @@ The website itself is **not** built yet.
   yet"; built-in online games work as before.
 
 `npm run check`: **241 Jest + 57 server tests** pass; Android export passes.
+
+- **Test APK build 34 — success** (Gradle 21 min): release `apk-0.3.0-build34`. Version
+  0.3.0 → it needs this APK (build 28 gets no over-the-air update for it; its in-app
+  "New version available" dialog offers build 34).
