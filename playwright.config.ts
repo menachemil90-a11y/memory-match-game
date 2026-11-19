@@ -11,16 +11,18 @@ const baseURL = process.env.E2E_BASE_URL ?? LOCAL;
 
 export default defineConfig({
   testDir: 'e2e/web',
-  timeout: 180_000,
+  timeout: 150_000,
   expect: { timeout: 15_000 },
   // Online tests share one live game server: keep them in order, one at a time.
   workers: 1,
   fullyParallel: false,
-  retries: process.env.CI ? 1 : 0,
+  // No retries: these tests must pass reliably (a retry would hide a flaky game).
+  retries: 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL,
     trace: 'off',
+    screenshot: 'only-on-failure',
     serviceWorkers: 'block',
     permissions: ['clipboard-read', 'clipboard-write'],
   },

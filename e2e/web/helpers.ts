@@ -70,8 +70,37 @@ const card = (page: Page, i: number) => page.locator(`[aria-label^="Card ${i + 1
 /** Waits until the game is on screen on both pages (coin flip and deal done). */
 export async function waitForBoard(pages: Page[], cards: number): Promise<void> {
   for (const page of pages) {
-    await expect(page.locator('[aria-label^="Card "]')).toHaveCount(cards, { timeout: 30_000 });
+    try {
+      await expect(page.locator('[aria-label^="Card "]')).toHaveCount(cards, { timeout: 30_000 });
+    } catch (error) {
+      throw new Error(`The board did not appear:\n${await describePages(pages)}\n${String(error)}`);
+    }
   }
+}
+
+/** What each page shows, for failure messages (URL, players, cards, overlays). */
+export async function describePages(pages: Page[]): Promise<string> {
+  const lines: string[] = [];
+  for (const [n, page] of pages.entries()) {
+    const labels = await page
+      .locator('[aria-label]')
+      .evaluateAll((els) =>
+        els
+          .map((el) => el.getAttribute('aria-label') ?? '')
+          .filter((l) => /^(You,|Card |.+, \d+ pairs?)/.test(l)),
+      )
+      .catch(() => ['(page closed)']);
+    const text = (
+      await page
+        .locator('body')
+        .innerText()
+        .catch(() => '')
+    ).replace(/\s+/g, ' ');
+    lines.push(
+      `page ${n}: ${page.url()}\n  labels: ${labels.join(' | ')}\n  text: ${text.slice(0, 400)}`,
+    );
+  }
+  return lines.join('\n');
 }
 
 /** The page whose player is playing now (the player panel says so, like a screen reader). */
@@ -118,12 +147,18 @@ export async function playToEnd(pages: Page[], cards: number): Promise<void> {
   const isOver = async () =>
     (await pages[0]!.getByText(/^(You win!|It's a tie!|.+ wins!)$/).count()) > 0;
 
+  let idleSince = Date.now();
   for (let turn = 0; turn < 200 && !(await isOver()); turn++) {
     const page = await activePage(pages);
     if (!page) {
+      // Nobody's turn for long: fail with what the screens show instead of hanging.
+      if (Date.now() - idleSince > 20_000) {
+        throw new Error(`No player's turn for 20 s:\n${await describePages(pages)}`);
+      }
       await pages[0]!.waitForTimeout(300);
       continue;
     }
+    idleSince = Date.now();
     for (let i = 0; i < cards; i++) {
       if (!matched.has(i) && (await card(page, i).count()) === 0) {
         matched.add(i);

@@ -42,16 +42,19 @@ test('a full game from an invite link, then a rematch', async ({ browser }, test
   const hostProblems = watchConsole(host);
   const guestProblems = watchConsole(guest);
   const mobile = testInfo.project.name === 'mobile';
-  if (mobile) {
-    // A phone's share sheet (the browser's Web Share API).
-    await host.addInitScript(() => {
-      Object.defineProperty(navigator, 'share', {
-        value: async (data: ShareData) => {
-          (window as unknown as { shared: ShareData }).shared = data;
-        },
-      });
+  // Phone: a share sheet (Web Share API) that records what was shared. Desktop: a
+  // browser without one (most desktop browsers), so the invite is copied. Headless
+  // Chrome has no share UI at all, so both cases are set explicitly.
+  await host.addInitScript((phone: boolean) => {
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: phone
+        ? async (data: ShareData) => {
+            (window as unknown as { shared: ShareData }).shared = data;
+          }
+        : undefined,
     });
-  }
+  }, mobile);
 
   await host.goto('');
   await host.getByRole('button', { name: 'Play Online' }).click();
