@@ -60,21 +60,21 @@ function WaitingDots() {
 /** Room screen: waiting room for the host, join-by-link for friends, then the game. */
 export default function OnlineRoomScreen() {
   const { t } = useTranslation();
-  const params = useLocalSearchParams<{ code?: string }>();
+  // `join=1`: opened by the lobby's Join button (name already chosen there).
+  const params = useLocalSearchParams<{ code?: string; join?: string }>();
   const code = normalizeRoomCode(params.code ?? '');
   const room = useOnline((s) => s.room);
   const seat = useOnline((s) => s.seat);
   const joinRoom = useOnline((s) => s.joinRoom);
+  const resume = useOnline((s) => s.resume);
   const leave = useOnline((s) => s.leave);
   const profile = usePlayersStore((s) => s.online);
   const error = useOnlineError();
   const joining = useOnline((s) => s.joining);
   const inThisRoom = room?.code === code && seat !== null;
   const canJoin = isOnlineConfigured && isValidRoomCode(code);
-  // Opened from a link without a nickname yet: ask for one right away.
-  const [needsName, setNeedsName] = useState(
-    () => !inThisRoom && canJoin && !checkNickname(profile.name).ok,
-  );
+  /** Shows the nickname errors — only after Join was tapped, never on arrival. */
+  const [needsName, setNeedsName] = useState(false);
   const [copied, setCopied] = useState<'code' | 'invite' | null>(null);
   /** The room code this screen already decided about joining (see below). */
   const tried = useRef<string | null>(null);
@@ -95,14 +95,20 @@ export default function OnlineRoomScreen() {
     joinRoom(code, profile.name, profile.avatar).catch(error.show);
   };
 
-  // Opened from an invite link (or the lobby's Join): join right away when the
-  // nickname is already known — decided once per code, when the screen opens.
-  // Leaving the room later (Back to menu) must not join it again.
+  // Decided once per code, when the screen opens (leaving the room later must not
+  // join it again):
+  // - from the lobby's Join (name chosen there): join right away;
+  // - otherwise (an invite link, a reload): back into the room if this player is
+  //   already in it; if not, the friend picks an avatar and a name and taps Join.
   useEffect(() => {
     if (tried.current === code) return;
     tried.current = code;
-    if (inThisRoom || !canJoin || !checkNickname(profile.name).ok) return;
-    joinRoom(code, profile.name, profile.avatar).catch(error.show);
+    if (inThisRoom || !canJoin) return;
+    if (params.join === '1' && checkNickname(profile.name).ok) {
+      joinRoom(code, profile.name, profile.avatar).catch(error.show);
+    } else {
+      resume(code).catch((e: unknown) => console.warn('Could not look for my room', e));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
 
@@ -177,9 +183,9 @@ export default function OnlineRoomScreen() {
     );
   }
 
-  // Not in the room yet: join (asks for a nickname first if needed).
+  // Not in the room yet: the invitation — pick an avatar and a name, then Join.
   return (
-    <Screen title={t('online.room', { code })}>
+    <Screen title={t('online.room', { code })} scroll>
       <View style={styles.center}>
         {!isOnlineConfigured ? (
           <AppText variant="heading" color={colors.textOnDark} align="center">
@@ -195,12 +201,26 @@ export default function OnlineRoomScreen() {
           </AppText>
         ) : (
           <>
+            <View style={styles.invite}>
+              <AppText
+                variant="title"
+                color={colors.textOnDark}
+                align="center"
+                accessibilityRole="header"
+              >
+                {t('online.invitedTitle')}
+              </AppText>
+              <AppText variant="body" color={colors.textOnDarkMuted} align="center">
+                {t('online.invitedHint')}
+              </AppText>
+            </View>
             <OnlineProfileCard showErrors={needsName} />
             <GameButton
-              label={t('online.joinButton')}
+              label={t('online.joinGame')}
               icon="enter"
               disabled={joining}
               onPress={join}
+              testID="join-game"
             />
             {/* Web game on Android: the main path is playing right here; this is for
                 friends who already have the app. */}
@@ -236,7 +256,8 @@ export default function OnlineRoomScreen() {
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', gap: spacing.lg },
+  center: { flexGrow: 1, justifyContent: 'center', gap: spacing.lg },
+  invite: { gap: spacing.xs },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radii.xl,

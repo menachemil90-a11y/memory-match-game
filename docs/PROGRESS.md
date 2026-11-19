@@ -699,3 +699,31 @@ Fix: `AUDIO_MODE.playsInSilentMode` is `true` on Android (game sounds follow the
 like every Android game) and `false` on iPhone (the mute switch is respected there). In-game
 sounds (deal, flip, match, miss, turn, win) are as before; menu buttons stay silent. JavaScript
 only → delivered over the air. Test: `src/lib/__tests__/sound.test.ts`.
+
+## 17. Link previews that make people tap, and the invitation screen (session 5, 2026-11-19)
+
+Owner's screenshot: sharing the game's link in WhatsApp showed a bare URL — no picture.
+
+- **New preview images** (`npm run brand` → `public/og-image.png`, `public/og-invite.png`,
+  1200×630, ~220 KB each): real game cards (a glowing pair of foxes, card backs, cat and panda),
+  the name and a yellow "▶ Play free, no download" / "▶ Tap to play with me" button — all in
+  the middle 630×630, so WhatsApp's square thumbnail shows the same thing as the wide card.
+- **Preview tags first in `<head>`** (crawlers read only the beginning): `og:*` incl.
+  `og:image:secure_url`, `og:locale`, sizes and alt text, plus `twitter:*`.
+- **The invite page has its own card**: `scripts/build-web.mjs` writes `join/index.html` with
+  "You're invited to play Memory Match! 🃏", "Tap to join my game…" and `og-invite.png`
+  (every replacement checked; the build fails if one is missing). The app's invite link is
+  `WEB_GAME_URL/join/?c=CODE`, so every invite from the app gets this card.
+- **Tested like the crawlers**: `site.spec.ts` fetches the home, online and invite pages as
+  WhatsApp, Facebook and Telegram — 200, tags early in the page, the right title/image,
+  image reachable, PNG, < 300 KB, really 1200×630 — locally and against the live site after
+  every deploy.
+- Note: WhatsApp shows the card only if it finished loading before Send, and caches a URL's
+  preview — the bare link in the screenshot was sent instantly; every new invite link is a
+  new URL.
+- **Invitation screen** (owner's choice: the friend picks an avatar and a name, then taps Join):
+  "You're invited to a game!", the profile card (saved name/avatar prefilled for returning
+  friends), a big "Join the game" button; no red error before trying. Joining happens only on
+  that tap; the lobby's Join (name chosen there) still enters directly (`?join=1`). A reload
+  mid-game returns the player to their room (`resume`: looks up the player's own room by
+  code; never signs a visitor in). Tests: room screen (4), resume (2), E2E updated.

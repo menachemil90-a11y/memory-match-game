@@ -96,27 +96,69 @@ test.describe('home and the download button', () => {
 });
 
 test.describe('invite links', () => {
-  test('the invite page is a real page with a link preview', async ({ request }) => {
-    for (const path of ['', 'join/?c=ABC234', 'online/']) {
-      const response = await request.get(path);
-      expect(response.status(), path).toBe(200);
-      const html = await response.text();
-      expect(html).toContain('property="og:title"');
-      expect(html).toContain(`content="${WEB_GAME_URL}/og-image.png"`);
-      expect(html).toContain(`content="${WEB_GAME_URL}/"`);
-    }
-    const image = await request.get('og-image.png');
-    expect(image.status()).toBe(200);
-    expect(image.headers()['content-type']).toContain('image/png');
-  });
+  // What chat apps' link-preview crawlers get (WhatsApp, Facebook/Messenger, Telegram):
+  // a real page (200), the preview tags early in <head>, and a reachable PNG under
+  // ~300 KB (WhatsApp drops larger images).
+  const CRAWLERS = {
+    WhatsApp: 'WhatsApp/2.24.21.84 A',
+    Facebook: 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+    Telegram: 'TelegramBot (like TwitterBot)',
+  };
+  const meta = (html: string, key: string) =>
+    new RegExp(`(?:property|name)="${key}"\\s+content="([^"]*)"`).exec(html)?.[1];
+
+  for (const [crawler, userAgent] of Object.entries(CRAWLERS)) {
+    test(`link previews for ${crawler}: the game, and an invitation with its own card`, async ({
+      request,
+    }) => {
+      const pages = [
+        { path: '', title: 'Play Memory Match with me! 🃏', image: 'og-image.png' },
+        { path: 'online/', title: 'Play Memory Match with me! 🃏', image: 'og-image.png' },
+        {
+          path: 'join/?c=ABC234',
+          title: "You're invited to play Memory Match! 🃏",
+          image: 'og-invite.png',
+        },
+      ];
+      for (const { path, title, image } of pages) {
+        const response = await request.get(path, { headers: { 'User-Agent': userAgent } });
+        expect(response.status(), path).toBe(200);
+        expect(response.headers()['content-type'], path).toContain('text/html');
+        const html = await response.text();
+        // Early in the page: crawlers read only the beginning.
+        expect(html.indexOf('property="og:image"'), path).toBeLessThan(2500);
+        expect(meta(html, 'og:title'), path).toBe(title);
+        expect(meta(html, 'og:description'), path).toMatch(/no download/);
+        expect(meta(html, 'og:image'), path).toBe(`${WEB_GAME_URL}/${image}`);
+        expect(meta(html, 'og:image:secure_url'), path).toBe(`${WEB_GAME_URL}/${image}`);
+        expect(meta(html, 'og:image:width'), path).toBe('1200');
+        expect(meta(html, 'og:image:height'), path).toBe('630');
+        expect(meta(html, 'twitter:card'), path).toBe('summary_large_image');
+
+        const picture = await request.get(image, { headers: { 'User-Agent': userAgent } });
+        expect(picture.status(), image).toBe(200);
+        expect(picture.headers()['content-type'], image).toContain('image/png');
+        const bytes = await picture.body();
+        expect(bytes.length, image).toBeLessThan(300_000);
+        // A real 1200×630 PNG (width/height from the IHDR chunk).
+        expect(bytes.readUInt32BE(16), image).toBe(1200);
+        expect(bytes.readUInt32BE(20), image).toBe(630);
+      }
+    });
+  }
 
   test('an old or new invite link opens the join flow for that room', async ({ page }) => {
     const problems = watchConsole(page);
     await page.goto('join/?c=abc234');
     await expect(page).toHaveURL(/\/online\/ABC234$/);
     await expect(page.getByText('Room ABC234')).toBeVisible();
+    // The invitation: pick an avatar and a name, then Join — no error before trying.
+    await expect(page.getByText("You're invited to a game!")).toBeVisible();
     await expect(page.getByPlaceholder('Your nickname')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Join', exact: true })).toBeVisible();
+    await expect(page.getByText('Please choose a nickname.')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Join the game', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Join the game', exact: true }).click();
+    await expect(page.getByText('Please choose a nickname.')).toBeVisible();
     // A link without a valid code lands in the lobby, where a code can be typed.
     await page.goto('join/?c=nope');
     await expect(page).toHaveURL(/\/online$/);

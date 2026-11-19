@@ -100,7 +100,9 @@ export default function OnlineLobbyScreen() {
               size="md"
               style={styles.flex}
               disabled={!isValidRoomCode(code)}
-              onPress={() => nameOk() && router.push(`/online/${code}`)}
+              onPress={() =>
+                nameOk() && router.push({ pathname: '/online/[code]', params: { code, join: '1' } })
+              }
             />
           </View>
         </View>

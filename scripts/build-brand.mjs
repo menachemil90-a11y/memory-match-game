@@ -4,7 +4,7 @@
  * and Play Store graphics from one vector logo (our own artwork).
  * Run: npm run brand
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -131,27 +131,83 @@ save(
   ),
 );
 
-// Web game (GitHub Pages): link preview for chat apps (Open Graph, 1200×630) and the
-// home-screen icon for phones. No alpha: some chat apps show transparency as black.
-const og = svg(
-  `<rect width="1200" height="630" fill="url(#bg)"/>
-   <circle cx="300" cy="315" r="360" fill="url(#glow)"/>
-   ${logo(300, 330, 400)}
-   <text x="560" y="250" font-family="Fredoka" font-weight="700" font-size="104" fill="#fff">Memory</text>
-   <text x="560" y="362" font-family="Fredoka" font-weight="700" font-size="104" fill="${SUN}">Match</text>
-   <text x="564" y="440" font-family="Fredoka" font-weight="700" font-size="40" fill="#fff" fill-opacity="0.9">Play with me in your browser!</text>
-   <text x="564" y="492" font-family="Fredoka" font-weight="700" font-size="30" fill="#fff" fill-opacity="0.75">No download needed</text>`,
-  1200,
-  630,
-);
-save(
+// Web game: link previews for chat apps (Open Graph, 1200×630). WhatsApp shows them
+// wide or as a centered square thumbnail, so everything that matters sits in the
+// middle 630×630: real game cards (a found pair glowing), the name and a "Play"
+// button. No alpha: some chat apps show transparency as black.
+const cardArt = (rel) =>
+  `data:image/png;base64,${readFileSync(join(ROOT, rel)).toString('base64')}`;
+const FOX = cardArt('assets/boards/animals/fox.png');
+const CAT = cardArt('assets/boards/animals/cat.png');
+const PANDA = cardArt('assets/boards/animals/panda.png');
+const BACK = cardArt('assets/card-backs/grape-stars.png');
+
+/** A game card at (cx, cy), rotated: face-up art on its color, or the card back. */
+function card(cx, cy, w, rot, { art, bg, glow = false, opacity = 1 } = {}) {
+  const h = w * 1.18;
+  const r = w * 0.16;
+  const inner = art
+    ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="${r}" fill="${bg}"/>
+       <image href="${art}" x="${-w * 0.36}" y="${-w * 0.36}" width="${w * 0.72}" height="${w * 0.72}"/>`
+    : `<image href="${BACK}" x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice"
+         clip-path="inset(0 round ${r}px)"/>`;
+  return `<g transform="translate(${cx} ${cy}) rotate(${rot})" opacity="${opacity}">
+    <rect x="${-w / 2 + 6}" y="${-h / 2 + 10}" width="${w}" height="${h}" rx="${r}" fill="#000" fill-opacity="0.22"/>
+    <clipPath id="c${Math.round(cx)}${Math.round(cy)}"><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="${r}"/></clipPath>
+    <g clip-path="url(#c${Math.round(cx)}${Math.round(cy)})">${inner}</g>
+    <rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="${r}" fill="none" stroke="${glow ? SUN : CREAM}" stroke-width="${w * (glow ? 0.07 : 0.05)}"/>
+  </g>`;
+}
+
+/** The link preview: cards on top, the name, a call to action in a "button". */
+function linkPreview({ kicker, title, button }) {
+  const buttonW = 70 + button.length * 21;
+  return svg(
+    `<rect width="1200" height="630" fill="url(#bg)"/>
+     <circle cx="600" cy="230" r="420" fill="url(#glow)"/>
+     ${card(150, 140, 150, -16)}
+     ${card(1060, 120, 140, 14)}
+     ${card(110, 500, 140, 10, { art: CAT, bg: '#FFF0C9', opacity: 0.9 })}
+     ${card(1090, 500, 150, -12, { art: PANDA, bg: '#FFF0C9', opacity: 0.9 })}
+     ${card(470, 190, 150, -12)}
+     ${card(600, 170, 165, 0, { art: FOX, bg: '#E6F9E9', glow: true })}
+     ${card(730, 190, 150, 12, { art: FOX, bg: '#E6F9E9', glow: true })}
+     ${sparkle(812, 95, 26)}${sparkle(392, 300, 16)}
+     <text x="600" y="${kicker ? 362 : 390}" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="${kicker ? 30 : 0}" fill="#fff" fill-opacity="0.92">${kicker ?? ''}</text>
+     <text x="600" y="${kicker ? 440 : 432}" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="84" fill="#fff" stroke="#3E24A8" stroke-width="3" paint-order="stroke">${title}</text>
+     <rect x="${600 - buttonW / 2}" y="482" width="${buttonW}" height="86" rx="43" fill="#E09A00"/>
+     <rect x="${600 - buttonW / 2}" y="474" width="${buttonW}" height="86" rx="43" fill="${SUN}"/>
+     <path d="M${600 - buttonW / 2 + 44} 499 l28 18 l-28 18 z" fill="#5C3B00"/>
+     <text x="${600 - buttonW / 2 + 86}" y="530" font-family="Fredoka" font-weight="700" font-size="38" fill="#5C3B00">${button}</text>`,
+    1200,
+    630,
+  );
+}
+
+const sparkle = (x, y, r) =>
+  `<path d="M${x} ${y - r} Q${x + r * 0.18} ${y - r * 0.18} ${x + r} ${y} Q${x + r * 0.18} ${y + r * 0.18} ${x} ${y + r} Q${x - r * 0.18} ${y + r * 0.18} ${x - r} ${y} Q${x - r * 0.18} ${y - r * 0.18} ${x} ${y - r} Z" fill="${SUN}"/>`;
+
+const savePreview = (rel, svgText) =>
+  save(
+    rel,
+    encodeRgbPng(
+      new Resvg(svgText, {
+        fitTo: { mode: 'width', value: 1200 },
+        background: GRAPE,
+        font: { fontFiles: [FONT], loadSystemFonts: false, defaultFontFamily: 'Fredoka' },
+      }).render(),
+    ),
+  );
+savePreview(
   'public/og-image.png',
-  encodeRgbPng(
-    new Resvg(og, {
-      fitTo: { mode: 'width', value: 1200 },
-      background: GRAPE,
-      font: { fontFiles: [FONT], loadSystemFonts: false, defaultFontFamily: 'Fredoka' },
-    }).render(),
-  ),
+  linkPreview({ title: 'Memory Match', button: 'Play free, no download' }),
+);
+savePreview(
+  'public/og-invite.png',
+  linkPreview({
+    kicker: "You're invited to a game!",
+    title: 'Memory Match',
+    button: 'Tap to play with me',
+  }),
 );
 save('public/apple-touch-icon.png', png(icon, 180));

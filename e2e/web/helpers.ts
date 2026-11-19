@@ -59,10 +59,10 @@ export async function createRoom(page: Page, nickname: string): Promise<string> 
   return code;
 }
 
-/** Guest on a join screen without a stored nickname: types it and joins. */
+/** Guest on the invitation: types a nickname and taps "Join the game". */
 export async function joinWithNickname(page: Page, nickname: string): Promise<void> {
   await page.getByPlaceholder('Your nickname').fill(nickname);
-  await page.getByRole('button', { name: 'Join', exact: true }).click();
+  await page.getByRole('button', { name: 'Join the game', exact: true }).click();
 }
 
 const card = (page: Page, i: number) => page.locator(`[aria-label^="Card ${i + 1},"]`).first();

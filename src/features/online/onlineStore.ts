@@ -6,7 +6,9 @@ import type { Board } from '@/features/boards/types';
 import type { LevelId } from '@/game';
 
 import {
+  currentUserId,
   ensureSignedIn,
+  fetchMyRoomByCode,
   fetchMinSupportedVersion,
   fetchRoom,
   onlineApi,
@@ -75,6 +77,11 @@ interface OnlineState {
   joinRoom: (code: string, name: string, avatar: string) => Promise<RoomRow>;
   /** A join is in progress (the room screen shows "Connecting…"). */
   joining: boolean;
+  /**
+   * Back into a room this player is already in (e.g. after reloading the page):
+   * true if found and attached. Never signs in and never joins a new room.
+   */
+  resume: (code: string) => Promise<boolean>;
   /** Re-attach to a room this user is already in (e.g. after the app restarted). */
   attach: (room: RoomRow) => void;
   applyRoom: (room: RoomRow | null) => void;
@@ -245,6 +252,20 @@ export const useOnline = create<OnlineState>()((set, get) => {
         }
       })();
       return photoBoardLoad;
+    },
+
+    async resume(code) {
+      set({ joining: true });
+      try {
+        const room = await fetchMyRoomByCode(code);
+        const userId = room ? await currentUserId() : null;
+        if (!room || !userId) return false;
+        set({ userId });
+        get().attach(room);
+        return true;
+      } finally {
+        set({ joining: false });
+      }
     },
 
     async joinRoom(code, name, avatar) {

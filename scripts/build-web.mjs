@@ -127,6 +127,37 @@ for (const route of routes) {
   mkdirSync(join(OUT, route), { recursive: true });
   copyFileSync(index, join(OUT, route, 'index.html'));
 }
+
+// The invite page gets its own link preview: an invitation, not the generic site card.
+const SITE_PREVIEW = {
+  title: 'Play Memory Match with me! 🃏',
+  description:
+    'A family memory game you play right in your browser — free, no download, no account.',
+  image: `${site.origin}${basePath}/og-image.png`,
+  url: `${site.origin}${basePath}/`,
+  alt: 'Memory Match — a matched pair of fox cards and a Play button',
+};
+const INVITE_PREVIEW = {
+  title: "You're invited to play Memory Match! 🃏",
+  description:
+    'Tap to join my game and play right in your browser — free, no download, no account.',
+  image: `${site.origin}${basePath}/og-invite.png`,
+  url: `${site.origin}${basePath}/join/`,
+  alt: "You're invited to a game of Memory Match — tap to play",
+};
+function withPreview(page, from, to) {
+  let out = page;
+  for (const key of Object.keys(from)) {
+    const count = out.split(`content="${from[key]}"`).length - 1;
+    if (count === 0) fail(`invite preview: "${from[key]}" (${key}) not found in index.html`);
+    out = out.split(`content="${from[key]}"`).join(`content="${to[key]}"`);
+  }
+  return out;
+}
+if (!existsSync(join(OUT, 'og-invite.png'))) fail('og-invite.png was not exported');
+const invitePage = join(OUT, 'join', 'index.html');
+writeFileSync(invitePage, withPreview(html, SITE_PREVIEW, INVITE_PREVIEW));
+console.log('Invite page: its own link preview (og-invite.png)');
 copyFileSync(index, join(OUT, '404.html'));
 console.log(`Pages for ${routes.length} routes: ${routes.join(', ')}`);
 

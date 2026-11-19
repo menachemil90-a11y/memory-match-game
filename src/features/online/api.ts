@@ -52,6 +52,30 @@ export async function fetchRoom(roomId: string): Promise<RoomRow | null> {
   return (data as RoomRow | null) ?? null;
 }
 
+/**
+ * This player's own open room with this code, if they are already in it
+ * (row-level security only shows a player their own rooms). Used after a reload.
+ * Does not sign in: a visitor without a session simply isn't in any room.
+ */
+export async function fetchMyRoomByCode(code: string): Promise<RoomRow | null> {
+  const auth = supabase().auth;
+  const { data } = await auth.getSession();
+  if (!data.session) return null;
+  const { data: room, error } = await supabase()
+    .from('rooms')
+    .select('*')
+    .eq('code', code)
+    .neq('status', 'closed')
+    .maybeSingle();
+  if (error) throw toOnlineError(error);
+  return (room as RoomRow | null) ?? null;
+}
+
+export async function currentUserId(): Promise<string | null> {
+  const { data } = await supabase().auth.getSession();
+  return data.session?.user.id ?? null;
+}
+
 export const onlineApi = {
   createPhotoRoom: (levelId: LevelId, cardBack: string, name: string, avatar: string) =>
     rpc<RoomRow>('create_photo_room', {
