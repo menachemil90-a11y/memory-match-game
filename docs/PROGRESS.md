@@ -592,6 +592,11 @@ site.
 - The host's room screen joined the room again right after the host left it (the auto-join
   for invite links re-ran when the room was cleared → a `join_room` 400 on every "Back to
   menu"/"Cancel"). Auto-join is now decided once, when the screen opens (regression test).
+- Clients sometimes asked the server to complete a pair (or claim a turn timeout) a few ms
+  before its deadline: the clock-offset estimate can be off by half the sync round trip, so
+  the server answered "too_early" (HTTP 400, then a retry). The clock sync now records that
+  uncertainty and every deadline call waits until the server's clock has surely passed
+  (`msUntilServerPassed`). Found by the E2E console check.
 - Nickname field overflowed its card in browsers (CSS `min-width: auto` on a text input in a
   flex row) → `minWidth: 0`.
 - Accessibility: the active player was shown by color only → player panels now say

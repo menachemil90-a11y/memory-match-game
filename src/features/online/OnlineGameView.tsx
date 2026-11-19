@@ -36,7 +36,7 @@ import { OnlineResults } from './components/OnlineResults';
 import { DISCONNECT_GRACE_SECONDS, TURN_SECONDS } from './config';
 import type { OnlineError } from './errors';
 import { useOnline } from './onlineStore';
-import { msUntil, opponentSilenceSeconds, type RoomRow, type Seat } from './room';
+import { msUntilServerPassed, opponentSilenceSeconds, type RoomRow, type Seat } from './room';
 
 type ViewRef = ComponentRef<typeof View>;
 type Stage = 'coin' | 'dealing' | 'playing';
@@ -61,6 +61,7 @@ export function OnlineGameView({ room, seat, board }: { room: RoomRow; seat: Sea
   const act = useOnline((s) => s.act);
   const leave = useOnline((s) => s.leave);
   const clockOffset = useOnline((s) => s.clockOffsetMs);
+  const clockError = useOnline((s) => s.clockErrorMs);
   const connection = useOnline((s) => s.connection);
   const opponentPresent = useOnline((s) => s.opponentPresent);
 
@@ -124,8 +125,20 @@ export function OnlineGameView({ room, seat, board }: { room: RoomRow; seat: Sea
   }, [stage, layout, reduceMotion, room.cards.length]);
 
   // ---- Resolve requests (both phones call; the server accepts the first) ----
+  // A pair may be completed once the server's clock passes resolve_at (a skip by
+  // the player who missed may come earlier). Waiting for "surely passed" means a
+  // correct client never asks too early; "too_early" stays a server-side guard.
+  const resolveAt = useRef(room.resolve_at);
+  useEffect(() => {
+    resolveAt.current = room.resolve_at;
+  }, [room.resolve_at]);
   const resolve = useCallback(
     async (skip = false) => {
+      if (!skip) {
+        const { clockOffsetMs, clockErrorMs } = useOnline.getState();
+        const wait = msUntilServerPassed(resolveAt.current, clockOffsetMs, clockErrorMs);
+        if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+      }
       for (let attempt = 0; attempt < 8; attempt++) {
         try {
           await act((id) => onlineApi.resolveTurn(id, skip));
@@ -188,7 +201,7 @@ export function OnlineGameView({ room, seat, board }: { room: RoomRow; seat: Sea
         }, afterFlip),
         setTimeout(
           () => void resolve(),
-          Math.max(afterFlip + 300, msUntil(room.resolve_at, clockOffset) + 50),
+          Math.max(afterFlip + 300, msUntilServerPassed(room.resolve_at, clockOffset, clockError)),
         ),
       );
     }
@@ -215,12 +228,12 @@ export function OnlineGameView({ room, seat, board }: { room: RoomRow; seat: Sea
   // ---- Turn timer: claim the timeout on the server when the clock runs out ----
   useEffect(() => {
     if (room.status !== 'playing' || !room.turn_deadline) return;
-    const wait = Math.max(0, msUntil(room.turn_deadline, clockOffset)) + 400;
+    const wait = msUntilServerPassed(room.turn_deadline, clockOffset, clockError) + 400;
     const id = setTimeout(() => {
       void act((rid) => onlineApi.claimTimeout(rid)).catch(() => undefined);
     }, wait);
     return () => clearTimeout(id);
-  }, [room.turn_deadline, room.status, clockOffset, act]);
+  }, [room.turn_deadline, room.status, clockOffset, clockError, act]);
 
   // ---- Android back = leave dialog ----
   useFocusEffect(

@@ -63,6 +63,24 @@ export function msUntil(
   return Date.parse(iso) - (now + clockOffsetMs);
 }
 
+/**
+ * How long to wait until the server's clock has surely passed `iso`: the
+ * clock-offset estimate can be off by up to half a round trip (`clockErrorMs`),
+ * so waiting only for the estimate would sometimes ask the server too early.
+ */
+export function msUntilServerPassed(
+  iso: string | null,
+  clockOffsetMs: number,
+  clockErrorMs: number,
+  now: number = Date.now(),
+): number {
+  if (!iso) return 0;
+  return Math.max(0, msUntil(iso, clockOffsetMs, now) + clockErrorMs + SERVER_TIME_MARGIN_MS);
+}
+
+/** Extra wait on top of the clock-sync error (timer jitter). */
+export const SERVER_TIME_MARGIN_MS = 50;
+
 /** Seconds since the opponent's last heartbeat (server clock). */
 export function opponentSilenceSeconds(
   room: RoomRow,

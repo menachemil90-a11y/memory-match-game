@@ -44,6 +44,11 @@ interface OnlineState {
   seat: Seat | null;
   /** server time − device time (ms), so timers use the server clock. */
   clockOffsetMs: number;
+  /**
+   * How far off clockOffsetMs can be: half the round trip of the sync request
+   * (the server read its clock somewhere in between). Conservative until synced.
+   */
+  clockErrorMs: number;
   connection: Connection;
   /** Realtime presence: is the opponent's app connected right now? */
   opponentPresent: boolean;
@@ -79,6 +84,9 @@ interface OnlineState {
   detach: () => void;
 }
 
+/** Clock-sync error assumed before the first sync (ms). */
+const UNSYNCED_CLOCK_ERROR_MS = 1000;
+
 let channel: RealtimeChannel | null = null;
 /** When the current photo board's URLs were signed (device clock). */
 let photoBoardSignedAt = 0;
@@ -99,7 +107,7 @@ async function syncClock(set: (s: Partial<OnlineState>) => void) {
   const t0 = Date.now();
   const server = await onlineApi.serverTime();
   const t1 = Date.now();
-  set({ clockOffsetMs: Date.parse(server) - (t0 + t1) / 2 });
+  set({ clockOffsetMs: Date.parse(server) - (t0 + t1) / 2, clockErrorMs: (t1 - t0) / 2 });
 }
 
 export const useOnline = create<OnlineState>()((set, get) => {
@@ -159,6 +167,7 @@ export const useOnline = create<OnlineState>()((set, get) => {
     room: null,
     seat: null,
     clockOffsetMs: 0,
+    clockErrorMs: UNSYNCED_CLOCK_ERROR_MS,
     connection: 'offline',
     opponentPresent: false,
     photoBoard: null,

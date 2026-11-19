@@ -1,7 +1,15 @@
 /** @jest-environment node */
 import { OnlineError, toOnlineError } from '../errors';
 import { checkNickname } from '../nickname';
-import { isNewer, msUntil, opponentSilenceSeconds, seatOf, type RoomRow } from '../room';
+import {
+  SERVER_TIME_MARGIN_MS,
+  isNewer,
+  msUntil,
+  msUntilServerPassed,
+  opponentSilenceSeconds,
+  seatOf,
+  type RoomRow,
+} from '../room';
 import {
   androidOpenInAppLink,
   appRoomLink,
@@ -125,5 +133,23 @@ describe('nicknames (client side)', () => {
     ['abcdefghijklmno', false],
   ])('%j → %s', (name, ok) => {
     expect(checkNickname(name).ok).toBe(ok);
+  });
+});
+
+describe('server deadlines', () => {
+  const now = Date.parse('2026-01-01T00:00:00.000Z');
+
+  it('waits until the server clock has surely passed a deadline (clock-sync error included)', () => {
+    const deadline = '2026-01-01T00:00:01.000Z'; // 1 s from now (server time = device time)
+    expect(msUntilServerPassed(deadline, 0, 0, now)).toBe(1000 + SERVER_TIME_MARGIN_MS);
+    // The offset estimate may be off by up to 120 ms: wait that much longer.
+    expect(msUntilServerPassed(deadline, 0, 120, now)).toBe(1120 + SERVER_TIME_MARGIN_MS);
+    // Server clock 300 ms ahead of the device.
+    expect(msUntilServerPassed(deadline, 300, 0, now)).toBe(700 + SERVER_TIME_MARGIN_MS);
+  });
+
+  it('never negative; no deadline means no wait', () => {
+    expect(msUntilServerPassed('2025-12-31T23:59:00.000Z', 0, 100, now)).toBe(0);
+    expect(msUntilServerPassed(null, 0, 100, now)).toBe(0);
   });
 });
