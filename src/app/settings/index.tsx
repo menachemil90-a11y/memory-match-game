@@ -12,6 +12,7 @@ import { UpdatesSection } from '@/features/updates/UpdatesSection';
 import { APP_VERSION_LABEL } from '@/lib/appInfo';
 import { getDb } from '@/lib/db';
 import { feedback } from '@/lib/feedback';
+import { capabilities } from '@/lib/platform/capabilities';
 import { AppText, Dialog, GameButton, Screen, SegmentedControl, Toggle } from '@/ui/components';
 import { colors, minTouchTarget, palette, radii, shadows, spacing } from '@/ui/theme';
 
@@ -80,46 +81,55 @@ export default function SettingsScreen() {
           value={s.musicEnabled}
           onValueChange={s.setMusicEnabled}
         />
-        <Toggle
-          label={t('settings.haptics')}
-          value={s.hapticsEnabled}
-          onValueChange={s.setHapticsEnabled}
-        />
+        {capabilities.haptics ? (
+          <Toggle
+            label={t('settings.haptics')}
+            value={s.hapticsEnabled}
+            onValueChange={s.setHapticsEnabled}
+          />
+        ) : null}
       </Section>
 
-      <Section title={t('settings.gameSection')}>
-        <AppText variant="bodyStrong">{t('settings.flipBack')}</AppText>
-        <AppText variant="caption" color={colors.textMuted}>
-          {t('settings.flipBackHint')}
-        </AppText>
-        <SegmentedControl<FlipBackSpeed>
-          value={s.flipBackSpeed}
-          onChange={s.setFlipBackSpeed}
-          accessibilityLabel={t('settings.flipBack')}
-          options={[
-            { value: 'normal', label: t('settings.flipNormal') },
-            { value: 'kids', label: t('settings.flipKids') },
-          ]}
-        />
-      </Section>
+      {/* Offline games, scores and updates are app features (the web game is online only). */}
+      {capabilities.appFeatures ? (
+        <Section title={t('settings.gameSection')}>
+          <AppText variant="bodyStrong">{t('settings.flipBack')}</AppText>
+          <AppText variant="caption" color={colors.textMuted}>
+            {t('settings.flipBackHint')}
+          </AppText>
+          <SegmentedControl<FlipBackSpeed>
+            value={s.flipBackSpeed}
+            onChange={s.setFlipBackSpeed}
+            accessibilityLabel={t('settings.flipBack')}
+            options={[
+              { value: 'normal', label: t('settings.flipNormal') },
+              { value: 'kids', label: t('settings.flipKids') },
+            ]}
+          />
+        </Section>
+      ) : null}
 
-      <Section title={t('settings.dataSection')}>
-        <AppText variant="caption" color={colors.textMuted}>
-          {t('settings.resetStatsHint')}
-        </AppText>
-        <GameButton
-          label={resetDone ? t('settings.resetDone') : t('settings.resetStats')}
-          icon="refresh"
-          variant="secondary"
-          size="md"
-          disabled={resetDone}
-          onPress={() => setConfirmReset(true)}
-        />
-      </Section>
+      {capabilities.appFeatures ? (
+        <Section title={t('settings.dataSection')}>
+          <AppText variant="caption" color={colors.textMuted}>
+            {t('settings.resetStatsHint')}
+          </AppText>
+          <GameButton
+            label={resetDone ? t('settings.resetDone') : t('settings.resetStats')}
+            icon="refresh"
+            variant="secondary"
+            size="md"
+            disabled={resetDone}
+            onPress={() => setConfirmReset(true)}
+          />
+        </Section>
+      ) : null}
 
-      <Section title={t('updates.section')}>
-        <UpdatesSection />
-      </Section>
+      {capabilities.appUpdates ? (
+        <Section title={t('updates.section')}>
+          <UpdatesSection />
+        </Section>
+      ) : null}
 
       <Section title={t('settings.aboutSection')}>
         <LinkRow

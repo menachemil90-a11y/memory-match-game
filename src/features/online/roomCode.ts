@@ -1,3 +1,5 @@
+import { WEB_GAME_URL } from '@/lib/links';
+
 /** Room codes: 6 characters, no ambiguous O/0/I/1. Must match the server's alphabet. */
 export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const ROOM_CODE_LENGTH = 6;
@@ -16,32 +18,45 @@ export function isValidRoomCode(code: string): boolean {
 
 /** Extracts a code from a pasted invite message or link. */
 export function codeFromText(text: string): string | null {
-  const match =
-    /online\/([A-Za-z0-9]{6})\b/.exec(text) ??
-    /[?&#]c=([A-Za-z0-9]{6})\b/.exec(text) ??
-    /\b([A-Za-z0-9]{6})\b/.exec(text);
-  const code = match ? normalizeRoomCode(match[1]!) : '';
-  return isValidRoomCode(code) ? code : null;
-}
-
-const REPO = /^([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))\/([A-Za-z0-9._-]{1,100})$/;
-
-/**
- * Web page that opens an invite (see site/join/index.html, published with GitHub Pages
- * next to the test APKs). Chat apps like WhatsApp only make https:// links tappable,
- * never custom schemes like memorymatch://, so invites must point here.
- */
-export function invitePageUrl(releasesRepo: string | null | undefined): string | null {
-  const match = releasesRepo ? REPO.exec(releasesRepo) : null;
-  if (!match || match[2] === '.' || match[2] === '..') return null;
-  return `https://${match[1]!.toLowerCase()}.github.io/${match[2]!}/join/`;
+  const linked = /online\/([A-Za-z0-9]{6})\b/.exec(text) ?? /[?&#]c=([A-Za-z0-9]{6})\b/.exec(text);
+  const candidates = linked
+    ? [linked[1]!]
+    : [...text.matchAll(/\b([A-Za-z0-9]{6})\b/g)].map((m) => m[1]!);
+  for (const candidate of candidates) {
+    const code = normalizeRoomCode(candidate);
+    if (isValidRoomCode(code) && code === candidate.toUpperCase()) return code;
+  }
+  return null;
 }
 
 /**
- * Link to send in an invite. A tappable https:// page when the app knows where it is
- * published; otherwise (local builds) the in-app deep link.
+ * The invite link: the web game's join page (WEB_GAME_URL/join/?c=CODE). A
+ * friend taps it and plays right in the browser; chat apps make https links
+ * tappable (never custom schemes like memorymatch://), and the page is a real
+ * file, so link previews work. Links sent before the web game existed use the
+ * same address, so they keep working.
  */
-export function inviteLink(scheme: string, code: string, releasesRepo?: string | null): string {
-  const page = invitePageUrl(releasesRepo);
-  return page ? `${page}?c=${code}` : `${scheme}://online/${code}`;
+export function inviteLink(code: string): string {
+  return `${WEB_GAME_URL}/join/?c=${code}`;
+}
+
+/** The app's own deep link to a room (memorymatch://online/CODE). */
+export function appRoomLink(scheme: string, code: string): string {
+  return `${scheme}://online/${code}`;
+}
+
+/**
+ * "Open in app" from Android's browser: an intent link that opens the app when
+ * it is installed and otherwise brings the browser back to `fallbackUrl`.
+ */
+export function androidOpenInAppLink(
+  scheme: string,
+  androidPackage: string,
+  code: string,
+  fallbackUrl: string,
+): string {
+  return (
+    `intent://online/${code}#Intent;scheme=${scheme};package=${androidPackage};` +
+    `S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`
+  );
 }

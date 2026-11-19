@@ -14,7 +14,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { UpdatePrompt } from '@/features/updates/UpdatePrompt';
+import { WebShell } from '@/features/web/WebShell';
 import { initI18n } from '@/lib/i18n';
+import { capabilities } from '@/lib/platform/capabilities';
 import { initSound, setMusicWanted } from '@/lib/sound';
 import { palette } from '@/ui/theme';
 
@@ -49,17 +51,29 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            animation: 'slide_from_right',
-            contentStyle: { backgroundColor: palette.grape },
-          }}
-        >
-          <Stack.Screen name="index" options={{ animation: 'fade' }} />
-          <Stack.Screen name="game" options={{ gestureEnabled: false }} />
-          <Stack.Screen name="results" options={{ animation: 'fade', gestureEnabled: false }} />
-        </Stack>
+        <WebShell>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              animation: 'slide_from_right',
+              contentStyle: { backgroundColor: palette.grape },
+            }}
+          >
+            <Stack.Screen name="index" options={{ animation: 'fade' }} />
+            {/* App-only screens: the web game (online play only) can't open them, not
+                even from a typed URL; its buttons show "Available in the app" instead. */}
+            <Stack.Protected guard={capabilities.appFeatures}>
+              <Stack.Screen name="game" options={{ gestureEnabled: false }} />
+              <Stack.Screen name="results" options={{ animation: 'fade', gestureEnabled: false }} />
+              <Stack.Screen name="levels" />
+              <Stack.Screen name="setup" />
+              <Stack.Screen name="my-boards/index" />
+              <Stack.Screen name="my-boards/new" />
+              <Stack.Screen name="my-boards/[boardId]" />
+              <Stack.Screen name="my-boards/crop" />
+            </Stack.Protected>
+          </Stack>
+        </WebShell>
         <UpdatePrompt />
       </SafeAreaProvider>
     </GestureHandlerRootView>

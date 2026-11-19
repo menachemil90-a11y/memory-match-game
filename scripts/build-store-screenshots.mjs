@@ -4,12 +4,11 @@
  * screenshots (1080×1920, 9:16) in the app's own style: brand gradient,
  * Fredoka caption, rounded "screen" with a soft shadow.
  *
- * 1. Capture raw shots:  node e2e/store-screenshots.cjs docs/store/screenshots/raw
- *    (web build served by e2e/serve-static.cjs — see e2e/README.md)
- * 2. Frame them:         node scripts/build-store-screenshots.mjs
- *
- * Photo-board shots must come from a real phone (the web build can't import
- * photos): save them as raw/08-photo-board.png etc. and add them to SHOTS.
+ * 1. Raw shots: screenshots of the Android app (phone or emulator, 1080×1920)
+ *    saved in docs/store/screenshots/raw/ under the names in SHOTS. (The first
+ *    set came from the web build, which since 0.3.0 is the online-only web
+ *    game, so new shots come from the app.)
+ * 2. Frame them:  npm run store:screenshots
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';

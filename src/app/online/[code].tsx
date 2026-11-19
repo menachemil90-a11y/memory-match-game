@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Share, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -18,11 +18,19 @@ import { OnlineProfileCard } from '@/features/online/components/OnlineProfileCar
 import { APP_SCHEME, isOnlineConfigured } from '@/features/online/config';
 import { checkNickname } from '@/features/online/nickname';
 import { useOnline } from '@/features/online/onlineStore';
-import { inviteLink, isValidRoomCode, normalizeRoomCode } from '@/features/online/roomCode';
+import {
+  androidOpenInAppLink,
+  inviteLink,
+  isValidRoomCode,
+  normalizeRoomCode,
+} from '@/features/online/roomCode';
 import { isPhotoRoom } from '@/features/online/roomPhotos';
+import { shareInvite } from '@/features/online/shareInvite';
 import { useOnlineError } from '@/features/online/useOnlineError';
 import { usePlayersStore } from '@/features/players/playersStore';
-import { releasesRepo } from '@/features/updates/updatesStore';
+import { deviceKind } from '@/features/web/device';
+import { ANDROID_PACKAGE } from '@/lib/links';
+import { capabilities } from '@/lib/platform/capabilities';
 import { AppText, Dialog, GameButton, ProgressOverlay, Screen } from '@/ui/components';
 import { colors, fonts, palette, radii, shadows, spacing } from '@/ui/theme';
 
@@ -62,8 +70,14 @@ export default function OnlineRoomScreen() {
   const error = useOnlineError();
   const [busy, setBusy] = useState(false);
   const [needsName, setNeedsName] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<'code' | 'invite' | null>(null);
   const tried = useRef(false);
+  const flashCopied = (what: 'code' | 'invite') => {
+    setCopied(what);
+    setTimeout(() => setCopied(null), 1500);
+  };
+  // On a fresh invite link there is no screen to go back to: go home instead.
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const inThisRoom = room?.code === code && seat !== null;
 
   const join = async () => {
@@ -100,7 +114,7 @@ export default function OnlineRoomScreen() {
   }
 
   if (inThisRoom && room.status === 'waiting') {
-    const link = inviteLink(APP_SCHEME, room.code, releasesRepo());
+    const message = t('online.inviteMessage', { code: room.code, link: inviteLink(room.code) });
     return (
       <Screen title={t('online.waitingTitle')} showBack={false}>
         <View style={styles.center}>
@@ -130,25 +144,21 @@ export default function OnlineRoomScreen() {
             ) : null}
           </View>
           <GameButton
-            label={t('online.invite')}
+            label={copied === 'invite' ? t('online.copied') : t('online.invite')}
             icon="share-social"
+            testID="invite"
             onPress={() =>
-              void Share.share({
-                message: t('online.inviteMessage', { code: room.code, link }),
-              }).catch(() => undefined)
+              void shareInvite(message)
+                .then((outcome) => outcome === 'copied' && flashCopied('invite'))
+                .catch((e: unknown) => console.warn('Could not share the invite', e))
             }
           />
           <GameButton
-            label={copied ? t('online.copied') : t('online.copyCode')}
+            label={copied === 'code' ? t('online.copied') : t('online.copyCode')}
             icon="copy"
             variant="info"
             size="md"
-            onPress={() =>
-              void Clipboard.setStringAsync(room.code).then(() => {
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1500);
-              })
-            }
+            onPress={() => void Clipboard.setStringAsync(room.code).then(() => flashCopied('code'))}
           />
           <GameButton
             label={t('online.cancel')}
@@ -156,7 +166,7 @@ export default function OnlineRoomScreen() {
             size="md"
             onPress={() => {
               void leave();
-              router.back();
+              goBack();
             }}
           />
         </View>
@@ -189,6 +199,17 @@ export default function OnlineRoomScreen() {
               disabled={busy}
               onPress={() => void join()}
             />
+            {/* Web game on Android: the main path is playing right here; this is for
+                friends who already have the app. */}
+            {capabilities.webShell && deviceKind() === 'android' && isValidRoomCode(code) ? (
+              <GameButton
+                label={t('web.openInApp')}
+                icon="open-outline"
+                variant="secondary"
+                size="md"
+                href={androidOpenInAppLink(APP_SCHEME, ANDROID_PACKAGE, code, inviteLink(code))}
+              />
+            ) : null}
           </>
         )}
       </View>
@@ -203,7 +224,7 @@ export default function OnlineRoomScreen() {
           size="md"
           onPress={() => {
             error.clear();
-            router.back();
+            goBack();
           }}
         />
       </Dialog>

@@ -67,10 +67,10 @@ Upload order (the first 3 matter most — they show in search results):
 5. `phone-5.png` — "Earn stars and beat your best"
 6. `phone-6.png` — "Solo, 2 players or online with family" (home)
 
-**How they're made** (repeatable after UI changes): `e2e/store-screenshots.cjs` plays the
-web build in a headless browser at 360×640 dp ×3 and saves raw shots to
-`docs/store/screenshots/raw/`; `npm run store:screenshots` adds the captions. Native-only
-effects (confetti) don't appear on web — the shots never claim them.
+**How they're made:** raw 1080×1920 shots in `docs/store/screenshots/raw/`, then
+`npm run store:screenshots` adds the captions. The current raw shots were captured from the
+web build at 360×640 dp ×3; since version 0.3.0 the web build is the online-only web game,
+so after UI changes take new raw shots on an Android phone or emulator.
 
 ### Photo-board screenshots (from your phone)
 

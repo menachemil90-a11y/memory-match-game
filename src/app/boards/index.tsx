@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,8 @@ import type { Board } from '@/features/boards/types';
 import { BoardsLoadError } from '@/features/boards/components/BoardsLoadError';
 import { useCustomBoardsStatus, useCustomGameBoards } from '@/features/boards/useBoard';
 import { AppText, Screen } from '@/ui/components';
+import { capabilities } from '@/lib/platform/capabilities';
+import { useScreenSize } from '@/ui/layout/useScreenSize';
 import { colors, spacing } from '@/ui/theme';
 
 type PickerMode = 'solo' | 'local' | 'online';
@@ -21,7 +23,7 @@ function parseMode(value: string | undefined): PickerMode {
 
 /** Tile width for a responsive grid: 2 columns on phones, more on tablets. */
 function useTileWidth(): number {
-  const { width } = useWindowDimensions();
+  const { width } = useScreenSize();
   const insets = useSafeAreaInsets();
   const content = width - insets.left - insets.right - spacing.lg * 2;
   const columns = content >= 1000 ? 5 : content >= 760 ? 4 : content >= 520 ? 3 : 2;
@@ -30,13 +32,16 @@ function useTileWidth(): number {
 
 export default function BoardPickerScreen() {
   const { t } = useTranslation();
-  const mode = parseMode(useLocalSearchParams<{ mode?: string }>().mode);
+  const requested = parseMode(useLocalSearchParams<{ mode?: string }>().mode);
+  // The web game picks boards only for online games.
+  const mode = capabilities.appFeatures ? requested : 'online';
   const tileWidth = useTileWidth();
   const customBoards = useCustomGameBoards();
   const status = useCustomBoardsStatus();
-  // Online, only a host with the app can choose a photo board (a web player can't).
+  // Online, only a host with the app can choose a photo board (a web player can't:
+  // the web game has no photo boards and never uploads photos).
   const online = mode === 'online';
-  const allowCustom = !online || (Platform.OS !== 'web' && customBoards.length > 0);
+  const allowCustom = capabilities.appFeatures && (!online || customBoards.length > 0);
 
   const open = (board: Board) => {
     if (mode === 'online') {

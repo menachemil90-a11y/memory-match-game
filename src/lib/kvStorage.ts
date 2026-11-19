@@ -6,7 +6,7 @@ import type { StateStorage } from 'zustand/middleware';
  * stores (settings, remembered player names). Being synchronous means
  * persisted state is ready on the first render — no flicker.
  */
-export const kvStateStorage: StateStorage = {
+export const kvStateStorage = {
   getItem: (name) => Storage.getItemSync(name),
   setItem: (name, value) => {
     Storage.setItemSync(name, value);
@@ -14,4 +14,4 @@ export const kvStateStorage: StateStorage = {
   removeItem: (name) => {
     Storage.removeItemSync(name);
   },
-};
+} satisfies StateStorage;

@@ -82,7 +82,14 @@ export const PlayerPanel = memo(function PlayerPanel({
         panelStyle,
       ]}
       accessible
-      accessibilityLabel={`${displayName}, ${t('game.collected', { count })}`}
+      accessibilityLabel={[
+        displayName,
+        t('game.collected', { count }),
+        active ? t('game.a11yPlayingNow') : null,
+      ]
+        .filter(Boolean)
+        .join(', ')}
+      accessibilityState={{ selected: active }}
     >
       <View style={styles.avatarWrap}>
         <View style={[styles.avatar, { borderColor: color.main }]}>

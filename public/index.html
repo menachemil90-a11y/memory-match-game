@@ -1,0 +1,72 @@
+<!doctype html>
+<!--
+  Template for the web game (Expo web export, GitHub Pages). The export injects
+  the scripts. Absolute URLs below must match WEB_GAME_URL in src/lib/links.ts
+  (checked by src/features/web/__tests__/webTemplate.test.ts). No tracking, no
+  analytics, no third-party requests: everything is served from this site.
+-->
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, shrink-to-fit=no"
+    />
+    <title>%WEB_TITLE% — play online with a friend</title>
+    <meta
+      name="description"
+      content="A family memory game. Tap the invite link and play with me right in your browser — no download, no account."
+    />
+    <meta name="theme-color" content="#5B3FD9" />
+    <meta name="referrer" content="no-referrer" />
+
+    <!-- Link previews (WhatsApp, Telegram, Messages…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Memory Match" />
+    <meta property="og:title" content="Play Memory Match with me! 🃏" />
+    <meta
+      property="og:description"
+      content="Tap to play a family memory game with me right in your browser — no download needed."
+    />
+    <meta property="og:url" content="https://menachemil90-a11y.github.io/memory-match-game/" />
+    <meta
+      property="og:image"
+      content="https://menachemil90-a11y.github.io/memory-match-game/og-image.png"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Memory Match — two playing cards with question marks" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="apple-touch-icon" href="/memory-match-game/apple-touch-icon.png" />
+
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background-color: #3e24a8; /* palette.grapeDark */
+      }
+      body {
+        overflow: hidden;
+        /* No pull-to-refresh or bounce while playing; no double-tap zoom on cards. */
+        overscroll-behavior: none;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <noscript>Memory Match needs JavaScript to run in your browser.</noscript>
+    <div id="root"></div>
+  </body>
+</html>

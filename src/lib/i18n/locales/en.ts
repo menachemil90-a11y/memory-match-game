@@ -115,6 +115,7 @@ const en = {
     yourTurn: "{{name, isolate}}'s turn!",
     collected_one: '{{count}} pair',
     collected_other: '{{count}} pairs',
+    a11yPlayingNow: 'playing now',
     pause: 'Pause',
     leaveTitle: 'Leave this game?',
     leaveMessage: 'Your progress in this game will be lost.',
@@ -248,7 +249,7 @@ const en = {
     copyCode: 'Copy code',
     copied: 'Copied!',
     inviteMessage:
-      "Let's play Memory Match together! 🃏\nTap to join my game: {{link}}\nOr open the app → Play Online → Join a game, and enter the code {{code}}.",
+      "Let's play Memory Match! 🃏 Tap to play with me right in your browser — no download needed: {{link}} (Room code: {{code}})",
     cancel: 'Cancel game',
     coinFlip: 'Who goes first?',
     starts: '{{name, isolate}} starts!',
@@ -367,6 +368,24 @@ const en = {
     title: 'Privacy',
     body: 'Memory Match is made for families.\n\n• Your photo boards are stored only on this device.\n• Online on a photo board: only if you choose it (after a confirmation) are the few small cards of that game sent to our game server. Only you and the friend who joins can see them, there are no public links, and they are deleted when the game closes — always within 24 hours. A friend who joins never uploads anything.\n• No account is needed to play. There are no ads and no tracking.\n• Online play uses an anonymous game ID, the nickname and avatar you choose, and the moves of the game. There is no chat.\n• Online game rooms are deleted automatically within a few hours.\n• Scores and settings are stored only on this device. "Reset scores" in Settings clears them; uninstalling the app removes everything.',
     full: 'Read the full privacy policy',
+  },
+  web: {
+    download: 'Download the app',
+    downloadAndroid: 'Download for Android',
+    downloadHint: 'Free Android app',
+    appOnlyTitle: 'Available in the app',
+    appOnlyFeature: '{{feature}} is part of the free Android app.',
+    appOnlyMessage:
+      'Solo games, 2 players on one phone and boards made from your own photos are in the app. Online games with a friend work right here in your browser.',
+    iosMessage:
+      'The app is for Android phones only for now. On iPhone you can play online with a friend right here in your browser.',
+    desktopHint: 'Open this page on your Android phone to install the app.',
+    installHint:
+      'After the download, open the file to install it. Your phone may ask you to allow installs from your browser.',
+    playOnline: 'Play online here',
+    notNow: 'Not now',
+    playMore: 'Play more in the app',
+    openInApp: 'Have the app? Open in app',
   },
   notFound: {
     title: 'Oops!',

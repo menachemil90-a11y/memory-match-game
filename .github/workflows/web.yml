@@ -1,0 +1,115 @@
+name: Web game (GitHub Pages)
+
+# The web game — the same app exported for browsers, online play only — at
+# https://menachemil90-a11y.github.io/memory-match-game/ (WEB_GAME_URL in src/lib/links.ts).
+#
+# Every push: checks → build (npm run build:web) → end-to-end tests: two browsers
+# play real online games against the live game server, plus the site's links,
+# popups and routes (e2e/web). On main, only if all of that passes: deploy to
+# GitHub Pages, then run the same tests against the live site.
+# Pages must use Source "GitHub Actions" (repository Settings → Pages).
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    concurrency:
+      group: web-build-${{ github.ref }}
+      cancel-in-progress: true
+    outputs:
+      entry: ${{ steps.web.outputs.entry }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - name: Build the web game
+        id: web
+        run: |
+          npm run build:web
+          echo "entry=$(grep -o 'entry-[0-9a-f]*\.js' dist/web/index.html | head -1)" >> "$GITHUB_OUTPUT"
+      - name: Install the test browser
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end tests (local build, live game server)
+        env:
+          E2E_ONLINE: '1'
+        run: npx playwright test --trace off
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-report-local
+          path: playwright-report
+          retention-days: 7
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        with:
+          path: dist/web
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  verify-live:
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Wait until the live site serves this build
+        env:
+          ENTRY: ${{ needs.build.outputs.entry }}
+        run: |
+          URL="$(node -p "/WEB_GAME_URL = '([^']+)'/.exec(require('fs').readFileSync('src/lib/links.ts','utf8'))[1]")/"
+          echo "url=$URL" >> "$GITHUB_ENV"
+          test -n "$ENTRY"
+          echo "Expecting $ENTRY"
+          for i in $(seq 1 60); do
+            if curl -fsS "${URL}?deploy=${GITHUB_SHA}-${i}" | grep -q "$ENTRY"; then
+              echo "Live after ${i} tries"; exit 0
+            fi
+            sleep 10
+          done
+          echo "The live site never served $ENTRY"; exit 1
+      - name: Install the test browser
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end tests against the live site
+        env:
+          E2E_ONLINE: '1'
+          E2E_BASE_URL: ${{ env.url }}
+        run: npx playwright test --trace off
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-report-live
+          path: playwright-report
+          retention-days: 7

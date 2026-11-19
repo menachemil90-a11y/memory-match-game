@@ -1,8 +1,9 @@
 import 'react-native-url-polyfill/auto';
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { Storage } from 'expo-sqlite/kv-store';
 import { AppState } from 'react-native';
+
+import { kvStateStorage } from '@/lib/kvStorage';
 
 import { SUPABASE_ANON_KEY, SUPABASE_URL, isOnlineConfigured } from './config';
 
@@ -14,12 +15,12 @@ export function getSupabase(): SupabaseClient | null {
   if (!client) {
     client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
+        // The anonymous session: SQLite in the app, localStorage on the web
+        // (same key-value store as settings — see kvStorage.ts / kvStorage.web.ts).
         storage: {
-          getItem: (key) => Storage.getItemAsync(key),
-          setItem: (key, value) => Storage.setItemAsync(key, value),
-          removeItem: async (key) => {
-            await Storage.removeItemAsync(key);
-          },
+          getItem: (key) => kvStateStorage.getItem(key),
+          setItem: (key, value) => void kvStateStorage.setItem(key, value),
+          removeItem: (key) => void kvStateStorage.removeItem(key),
         },
         autoRefreshToken: true,
         persistSession: true,

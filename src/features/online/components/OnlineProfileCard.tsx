@@ -97,6 +97,9 @@ const styles = StyleSheet.create({
   avatarImg: { width: 38, height: 38 },
   input: {
     flex: 1,
+    // Browsers give text inputs an intrinsic width; without this the field can't
+    // shrink to the row (CSS flex items default to min-width: auto).
+    minWidth: 0,
     ...typography.heading,
     fontFamily: fonts.semibold,
     color: colors.text,

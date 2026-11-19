@@ -10,3 +10,4 @@ export * from './Pressable3D';
 export * from './ProgressOverlay';
 export * from './TurnTimerRing';
 export * from './SegmentedControl';
+export * from './PressableLink';

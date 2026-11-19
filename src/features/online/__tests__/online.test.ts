@@ -3,9 +3,10 @@ import { OnlineError, toOnlineError } from '../errors';
 import { checkNickname } from '../nickname';
 import { isNewer, msUntil, opponentSilenceSeconds, seatOf, type RoomRow } from '../room';
 import {
+  androidOpenInAppLink,
+  appRoomLink,
   codeFromText,
   inviteLink,
-  invitePageUrl,
   isValidRoomCode,
   normalizeRoomCode,
 } from '../roomCode';
@@ -36,21 +37,38 @@ describe('room codes', () => {
     expect(codeFromText('Join me! memorymatch://online/XKCD42')).toBe('XKCD42');
     expect(codeFromText('code: hjkm23 see you')).toBe('HJKM23');
     expect(codeFromText('nothing here')).toBeNull();
-    expect(inviteLink('memorymatch', 'XKCD42')).toBe('memorymatch://online/XKCD42');
     expect(codeFromText('Tap: https://someone.github.io/memory-match-game/join/?c=xkcd42')).toBe(
       'XKCD42',
     );
+    // The current invite text: the link wins over other 6-letter words.
+    expect(
+      codeFromText(
+        "Let's play Memory Match! 🃏 Tap to play with me right in your browser — no download needed: https://menachemil90-a11y.github.io/memory-match-game/join/?c=ABC234 (Room code: ABC234)",
+      ),
+    ).toBe('ABC234');
+    // Without a link: words like "Memory" (contains O) are skipped, the code is found.
+    expect(codeFromText('Memory Match, Room code: hjkm23')).toBe('HJKM23');
   });
 
-  it('invites with a tappable https link when the publish repo is known', () => {
-    // WhatsApp and most chat apps never make custom schemes (memorymatch://) tappable.
-    expect(inviteLink('memorymatch', 'XKCD42', 'Some-Owner/memory-match-game')).toBe(
-      'https://some-owner.github.io/memory-match-game/join/?c=XKCD42',
+  it('invites open the web game straight in the room (the old link format still works)', () => {
+    expect(inviteLink('XKCD42')).toBe(
+      'https://menachemil90-a11y.github.io/memory-match-game/join/?c=XKCD42',
     );
-    expect(inviteLink('memorymatch', 'XKCD42', null)).toBe('memorymatch://online/XKCD42');
-    expect(invitePageUrl('../etc')).toBeNull();
-    expect(invitePageUrl('owner/..')).toBeNull();
-    expect(invitePageUrl('owner')).toBeNull();
+    expect(codeFromText(inviteLink('XKCD42'))).toBe('XKCD42');
+    expect(appRoomLink('memorymatch', 'XKCD42')).toBe('memorymatch://online/XKCD42');
+  });
+
+  it('"Open in app" on Android uses an intent that falls back to the web game', () => {
+    const link = androidOpenInAppLink(
+      'memorymatch',
+      'com.example.app',
+      'XKCD42',
+      'https://x.github.io/g/join/?c=XKCD42',
+    );
+    expect(link).toBe(
+      'intent://online/XKCD42#Intent;scheme=memorymatch;package=com.example.app;' +
+        'S.browser_fallback_url=https%3A%2F%2Fx.github.io%2Fg%2Fjoin%2F%3Fc%3DXKCD42;end',
+    );
   });
 });
 

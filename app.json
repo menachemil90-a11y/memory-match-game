@@ -38,7 +38,13 @@
       "versionCode": 1
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "bundler": "metro",
+      "name": "Memory Match",
+      "shortName": "Memory Match",
+      "lang": "en",
+      "backgroundColor": "#3E24A8"
     },
     "plugins": [
       "expo-router",

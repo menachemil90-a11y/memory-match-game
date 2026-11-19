@@ -8,7 +8,9 @@ import { useTranslation } from 'react-i18next';
 
 import { AVATAR_SOURCES } from '@/features/boards/builtin';
 import type { BoardImage } from '@/features/boards/types';
+import { DownloadAppButton } from '@/features/web/DownloadAppButton';
 import { feedback } from '@/lib/feedback';
+import { capabilities } from '@/lib/platform/capabilities';
 import { heroEntering } from '@/ui/animation/motion';
 import { AppText, Confetti, GameButton } from '@/ui/components';
 import { colors, palette, radii, shadows, spacing } from '@/ui/theme';
@@ -133,6 +135,7 @@ export function OnlineResults({
               }}
             />
           ) : null}
+          {capabilities.webShell ? <DownloadAppButton label={t('web.playMore')} /> : null}
           <GameButton
             label={t('online.backToMenu')}
             icon="home"

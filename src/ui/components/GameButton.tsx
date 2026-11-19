@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps } from 'react';
-import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Linking, Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -12,6 +12,7 @@ import { feedback } from '@/lib/feedback';
 import { colors, minTouchTarget, motion, radii, shadows, spacing } from '@/ui/theme';
 
 import { AppText } from './AppText';
+import { PressableLink } from './PressableLink';
 
 export type ButtonVariant = keyof typeof colors.button;
 export type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -26,6 +27,12 @@ export interface GameButtonProps {
   accessibilityHint?: string;
   style?: StyleProp<ViewStyle>;
   testID?: string;
+  /**
+   * Makes the button a link. On the web it is a real `<a href>` (so a download
+   * starts like any link, and it works with long-press/middle-click); in the
+   * app the URL opens in the browser.
+   */
+  href?: string;
 }
 
 const DEPTH = motion.buttonPressDepth;
@@ -44,6 +51,7 @@ export function GameButton({
   accessibilityHint,
   style,
   testID,
+  href,
 }: GameButtonProps) {
   const scheme = colors.button[variant];
   const pressed = useSharedValue(0);
@@ -59,8 +67,9 @@ export function GameButton({
   };
 
   return (
-    <Pressable
-      accessibilityRole="button"
+    <PressableLink
+      href={Platform.OS === 'web' ? href : undefined}
+      accessibilityRole={href ? 'link' : 'button'}
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled }}
@@ -70,6 +79,7 @@ export function GameButton({
       onPressOut={() => setPressed(0)}
       onPress={() => {
         feedback.tap();
+        if (href && Platform.OS !== 'web') void Linking.openURL(href);
         onPress?.();
       }}
       style={[styles.wrapper, { height: height + DEPTH, opacity: disabled ? 0.55 : 1 }, style]}
@@ -82,7 +92,7 @@ export function GameButton({
           {label}
         </AppText>
       </Animated.View>
-    </Pressable>
+    </PressableLink>
   );
 }
 

@@ -14,10 +14,16 @@
 // - APK_RELEASES_REPO ("owner/repo", from GitHub Actions) tells the app where
 //   the test APKs are published (GitHub Releases). Not committed: it is only
 //   known inside the workflows.
+//
+// Web game (GitHub Pages): scripts/build-web.mjs sets WEB_BASE_PATH (the path of
+// WEB_GAME_URL in src/lib/links.ts, e.g. "/memory-match-game") so the export
+// loads its files from that sub-path. Web exports only; native builds and
+// over-the-air updates never set it.
 module.exports = ({ config }) => {
   const channel = process.env.EXPO_UPDATES_CHANNEL;
   const build = Number(process.env.APK_BUILD_NUMBER);
   const repo = process.env.APK_RELEASES_REPO;
+  const webBasePath = process.env.WEB_BASE_PATH;
 
   const next = { ...config, extra: { ...config.extra } };
   if (channel) {
@@ -31,6 +37,10 @@ module.exports = ({ config }) => {
   }
   if (repo) {
     next.extra.apkReleasesRepo = repo;
+  }
+  if (webBasePath) {
+    if (!/^\/[a-z0-9-]+$/.test(webBasePath)) throw new Error(`Bad WEB_BASE_PATH: ${webBasePath}`);
+    next.experiments = { ...config.experiments, baseUrl: webBasePath };
   }
   return next;
 };

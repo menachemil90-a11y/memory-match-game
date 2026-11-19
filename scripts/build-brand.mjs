@@ -130,3 +130,28 @@ save(
     }).render(),
   ),
 );
+
+// Web game (GitHub Pages): link preview for chat apps (Open Graph, 1200×630) and the
+// home-screen icon for phones. No alpha: some chat apps show transparency as black.
+const og = svg(
+  `<rect width="1200" height="630" fill="url(#bg)"/>
+   <circle cx="300" cy="315" r="360" fill="url(#glow)"/>
+   ${logo(300, 330, 400)}
+   <text x="560" y="250" font-family="Fredoka" font-weight="700" font-size="104" fill="#fff">Memory</text>
+   <text x="560" y="362" font-family="Fredoka" font-weight="700" font-size="104" fill="${SUN}">Match</text>
+   <text x="564" y="440" font-family="Fredoka" font-weight="700" font-size="40" fill="#fff" fill-opacity="0.9">Play with me in your browser!</text>
+   <text x="564" y="492" font-family="Fredoka" font-weight="700" font-size="30" fill="#fff" fill-opacity="0.75">No download needed</text>`,
+  1200,
+  630,
+);
+save(
+  'public/og-image.png',
+  encodeRgbPng(
+    new Resvg(og, {
+      fitTo: { mode: 'width', value: 1200 },
+      background: GRAPE,
+      font: { fontFiles: [FONT], loadSystemFonts: false, defaultFontFamily: 'Fredoka' },
+    }).render(),
+  ),
+);
+save('public/apple-touch-icon.png', png(icon, 180));

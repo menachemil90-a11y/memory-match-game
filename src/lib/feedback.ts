@@ -1,11 +1,12 @@
 import * as Haptics from 'expo-haptics';
 
 import { useSettingsStore } from '@/features/settings/settingsStore';
+import { capabilities } from '@/lib/platform/capabilities';
 
 import { playSound } from './sound';
 
 function hapticsOn(): boolean {
-  return useSettingsStore.getState().hapticsEnabled;
+  return capabilities.haptics && useSettingsStore.getState().hapticsEnabled;
 }
 
 function safe(promise: Promise<void>): void {
