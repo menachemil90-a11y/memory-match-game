@@ -103,6 +103,12 @@
     c.lang = spec.lang;
     const span = el('span', '', {}, c);
     richText(span, text);
+    // Max 2 lines (brief): a long caption gets a smaller font until it fits.
+    let size = box.size;
+    while (span.offsetHeight > size * 1.12 * 2.2 && size > box.size * 0.6) {
+      size *= 0.94;
+      c.style.fontSize = px(size);
+    }
   }
 
   function background() {
@@ -488,9 +494,14 @@
     } else if (sc.caption) caption(sc.caption[spec.lang], L.caption, t, 0.05);
   }
 
-  window.setup = function (s) {
+  window.setup = async function (s) {
     spec = s;
     L = { ...LAYOUTS[s.format], format: s.format };
+    // Measuring captions needs the real font from the first frame on.
+    await Promise.all([
+      document.fonts.load('700 80px Fredoka', 'אבג abc'),
+      document.fonts.load('600 40px Fredoka', 'אבג abc'),
+    ]);
   };
 
   window.draw = async function (t) {
