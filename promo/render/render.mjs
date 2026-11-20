@@ -115,8 +115,9 @@ function at(clip, from) {
     return flips.at(-2).t + offset;
   }
   const hits = clip.markers.filter((m) => m.name === from.marker);
-  const hit = hits[from.nth ?? 0];
-  if (!hit) throw new Error(`${clip.name}: no marker "${from.marker}" #${from.nth ?? 0}`);
+  // A real game can have fewer turns than the storyboard asks for: take the last one.
+  const hit = hits[Math.min(from.nth ?? 0, hits.length - 1)];
+  if (!hit) throw new Error(`${clip.name}: no marker "${from.marker}"`);
   return hit.t + offset;
 }
 
@@ -162,7 +163,13 @@ function timeline(video, lang) {
         const right = clipFor(raw.right, lang);
         sc.left = keep(left);
         sc.right = keep(right);
-        sc.abs0 = at(raw.from.clip === 'right' ? right : left, raw.from);
+        // Both phones film one game on one clock: a marker can be on either recording.
+        const both = {
+          name: `${left.name}+${right.name}`,
+          frames: (raw.from.clip === 'right' ? right : left).frames,
+          markers: [...left.markers, ...right.markers].sort((a, b) => a.t - b.t),
+        };
+        sc.abs0 = at(both, raw.from);
         footageSounds(left, sc.abs0, raw.dur, start);
         footageSounds(right, sc.abs0, raw.dur, start);
         room ??= left.meta?.code;
