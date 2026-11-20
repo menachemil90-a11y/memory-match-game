@@ -18,7 +18,7 @@ export const SCALE = 2;
 export async function startRecording(page, dir) {
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(join(dir, 'frames'), { recursive: true });
-  const cdp = await page.context().newCDPSession(page);
+  let cdp = await page.context().newCDPSession(page);
   const viewport = page.viewportSize();
   const frames = [];
   const markers = [];
@@ -38,6 +38,12 @@ export async function startRecording(page, dir) {
         });
       } catch (error) {
         if (!running) break;
+        // A navigation to another site swaps the page's process: attach again.
+        if (/not attached|detached|session closed|target closed/i.test(String(error))) {
+          await new Promise((ok) => setTimeout(ok, 50));
+          cdp = await page.context().newCDPSession(page);
+          continue;
+        }
         throw error;
       }
       const t = (before + Date.now()) / 2000;
