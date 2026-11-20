@@ -87,6 +87,8 @@
 
   function caption(text, box, t, start) {
     if (!text) return;
+    // Captions with a dash are two halves: one per line, the dash ends the first.
+    text = text.replace(/ — /g, '\u00a0—\n');
     const s = pop(t, start);
     const c = el('div', 'caption', {
       left: px(box.x),
