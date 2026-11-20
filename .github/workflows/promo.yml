@@ -86,7 +86,8 @@ jobs:
           done
           test "$(ls *.mp4 | wc -l)" -eq 20
           for f in *.mp4; do
-            test "$(ffprobe -v error -select_streams v -show_entries stream=pix_fmt -of csv=p=0 "$f")" = yuv420p
+            pix=$(ffprobe -v error -select_streams v -show_entries stream=pix_fmt -of csv=p=0 "$f")
+            case "$pix" in yuv420p*) ;; *) echo "$f: $pix is not yuv420p"; exit 1 ;; esac
           done
       - uses: actions/upload-artifact@v4
         if: failure()
