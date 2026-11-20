@@ -727,6 +727,38 @@ Owner's screenshot: sharing the game's link in WhatsApp showed a bare URL — no
   mid-game returns the player to their room (`resume`: looks up the player's own room by
   code; never signs a visitor in). Tests: room screen (4), resume (2), E2E updated.
 
+## 18. Promo videos for ads (session 5, 2026-11-20)
+
+Brief: `promo/BRIEF.md`. Storyboard: `promo/STORYBOARD.md` (scenes, timings, captions HE/EN,
+real footage vs. motion graphics). Captions/timings/scenes in one data file:
+`promo/content.json`. Tooling lives in `promo/` with its own `package.json` (Playwright,
+supabase-js); the app's dependencies don't change.
+
+- **Footage is the real game.** `promo/capture/capture.mjs` films phone-size browser pages
+  (360×640 at 2× → 720×1280 frames, CDP screenshots, ~18 fps):
+  - Solo, 2 Players and the levels — in a **capture-only web build of the full app**
+    (`PROMO_CAPTURE=1` → `promo/capture/metro-capture.cjs` resolves the `.web` platform files
+    to the app versions; built by `build-capture-web.mjs`, served with the headers SQLite
+    needs by `serve.cjs`). Never deployed; the shipped web game is unchanged.
+  - Online rooms (family photos, Grandma, speed run) — real rooms on the live game server
+    with demo players (anonymous sign-in, the AI demo family photos in `promo/photos`);
+    Grandma plays in the regular web game.
+- **Renderer** `promo/render/render.mjs`: an HTML stage (`stage.html`/`stage.js`: the game's
+  gradient, Fredoka, card backs, logo, a generic phone frame and URL bar, Twemoji) drawn per
+  frame in Playwright at 1080×1920 / 1080×1350 → ffmpeg (H.264 high, yuv420p, 30 fps, AAC
+  48 kHz). Sound = the game's own effects at the game's volumes, on the footage's markers.
+  Every video also gets a 6-frame contact sheet.
+- **CI** `.github/workflows/promo.yml` (push to a non-main branch touching promo, or by hand):
+  builds, films, renders 9:16 then 4:5 and uploads to the **pre-release `promo-v1`, never
+  "latest"** (it checks that `releases/latest` is still the APK release). Renders never go
+  into git (`promo/out/` is ignored).
+- App-only screens that can't be filmed in a browser (gallery pick, crop) → exact shots in
+  `promo/SHOTLIST-PHONE.md`; until then video 1 uses a motion-graphics version.
+- **Bug found while filming, fixed:** a sentence that starts with a Hebrew name ("נועה's
+  turn!") was laid out right to left on the web — `dir="auto"` takes the first strong letter
+  even inside the name's isolate. An i18next post-processor puts an invisible LRM in front of
+  such sentences (`ltrSentence`, `src/lib/i18n/index.ts`; bidi test updated).
+
 ## 16. Board editor: "Play online" button (session 4, 2026-11-19)
 
 Owner's request (screenshot of the editor): next to **Play solo** and **Play with 2**, a

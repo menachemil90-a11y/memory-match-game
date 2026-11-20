@@ -26,11 +26,11 @@
       H: 1350,
       safe: { x0: 50, x1: 1030, y0: 40, y1: 1310 },
       caption: { x: 60, y: 40, w: 960, h: 220, size: 70 },
-      phone: { cx: 540, top: 285, screenW: 560 },
-      twoPhones: { cx: [300, 780], top: 300, screenW: 440 },
+      phone: { cx: 540, top: 290, screenW: 520 },
+      twoPhones: { cx: [300, 780], top: 300, screenW: 430 },
       timer: { cx: 540, y: 34, size: 100 },
       speedCaption: { x: 60, y: 160, w: 960, h: 120, size: 56 },
-      speedPhone: { cx: 540, top: 300, screenW: 545 },
+      speedPhone: { cx: 540, top: 300, screenW: 500 },
     },
   };
 
@@ -410,8 +410,8 @@
     endcard(sc, t) {
       const e = spec.endcard;
       const cx = L.format === '9x16' ? 500 : 540;
-      const base = L.format === '9x16' ? 560 : 120;
-      const k = L.format === '9x16' ? 1 : 0.88;
+      const base = L.format === '9x16' ? 560 : 230;
+      const k = 1;
       // The logo: two tilted cards with question marks (the app icon's artwork).
       const logo = el('div', 'abs', {
         left: px(cx - 220 * k),
