@@ -3,6 +3,7 @@ import en from '../locales/en';
 
 const FSI = '⁨';
 const PDI = '⁩';
+const LRM = '\u200E';
 
 /** All strings of a nested translation object. */
 function strings(value: unknown): string[] {
@@ -26,7 +27,8 @@ describe('names in sentences (bidi)', () => {
     expect(i18n.t('myBoards.deleteBoardTitle', { name: 'משפחה' })).toBe(
       `Delete "${FSI}משפחה${PDI}"?`,
     );
-    expect(i18n.t('game.yourTurn', { name: 'נועה' })).toBe(`${FSI}נועה${PDI}'s turn!`);
+    // A sentence that starts with the name: an LRM keeps it left to right (web dir="auto").
+    expect(i18n.t('game.yourTurn', { name: 'נועה' })).toBe(`${LRM}${FSI}נועה${PDI}'s turn!`);
   });
 
   it('keeps the name itself unchanged (logical order, no reversal)', () => {

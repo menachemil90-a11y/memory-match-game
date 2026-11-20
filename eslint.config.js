@@ -18,6 +18,8 @@ module.exports = defineConfig([
       'node_modules/*',
       'supabase/functions/*',
       'supabase/tests/.build/**',
+      'promo/out/**',
+      'promo/node_modules/**',
     ],
   },
   {

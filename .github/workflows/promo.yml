@@ -1,0 +1,109 @@
+name: Promo videos
+
+# Renders the promo videos (promo/, see promo/BRIEF.md and promo/STORYBOARD.md) and
+# uploads them to the pre-release "promo-v1" — never the "latest" release, which must
+# stay the APK release (the app's download link is releases/latest/download/…).
+#
+# 1. Builds the capture-only web version of the full app (PROMO_CAPTURE=1, never
+#    deployed) and the regular web game, and serves both locally.
+# 2. Films the real game (promo/capture/capture.mjs): Solo / 2 Players / levels in the
+#    capture build; online rooms through the live game server with demo players
+#    (anonymous sign-in, the demo family photos), Grandma in the regular web game.
+# 3. Renders 9:16 then 4:5, Hebrew and English (promo/render/render.mjs).
+# Renders are never committed to git.
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'promo/content.json'
+      - 'promo/capture/**'
+      - 'promo/render/**'
+      - '.github/workflows/promo.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: promo
+  cancel-in-progress: true
+
+env:
+  TAG: promo-v1
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            promo/package-lock.json
+      - run: npm ci
+      - run: npm ci
+        working-directory: promo
+      - name: Browser and ffmpeg
+        working-directory: promo
+        run: |
+          npx playwright install --with-deps chromium
+          sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+      - name: Build the capture version and the web game
+        env:
+          EXPO_OFFLINE: '1'
+        run: |
+          node promo/capture/build-capture-web.mjs
+          npm run build:web
+      - name: Serve them
+        run: |
+          nohup node promo/capture/serve.cjs promo/out/capture-web 8098 > /tmp/capture-web.log 2>&1 &
+          nohup node promo/capture/serve.cjs dist/web 8097 > /tmp/web.log 2>&1 &
+          for port in 8098 8097; do
+            for i in $(seq 1 30); do curl -sf "http://localhost:$port/" > /dev/null && break; sleep 1; done
+          done
+      - name: Film the game
+        working-directory: promo
+        env:
+          WEB_URL: http://localhost:8097
+        run: node capture/capture.mjs
+      - name: Render 9:16
+        working-directory: promo
+        run: node render/render.mjs --format 9x16 --strict
+      - name: Render 4:5
+        working-directory: promo
+        run: node render/render.mjs --format 4x5 --strict
+      - name: Check the files
+        working-directory: promo/out/renders
+        run: |
+          for f in *.mp4; do
+            ffprobe -v error -show_entries stream=codec_name,profile,pix_fmt,width,height,r_frame_rate,sample_rate \
+              -show_entries format=duration -of compact "$f"
+          done
+          test "$(ls *.mp4 | wc -l)" -eq 20
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: promo-renders
+          path: |
+            promo/out/renders/*.mp4
+            promo/out/renders/*.png
+          retention-days: 14
+      - name: Upload to the pre-release (never "latest")
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest_before=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+          if ! gh release view "$TAG" > /dev/null 2>&1; then
+            gh release create "$TAG" --prerelease --latest=false --target "$GITHUB_SHA" \
+              --title "Promo videos v1" \
+              --notes "Promo videos (9:16 and 4:5, Hebrew and English) with a contact sheet per video. Made by .github/workflows/promo.yml from promo/content.json — see promo/STORYBOARD.md. Not an app release."
+          fi
+          gh release upload "$TAG" promo/out/renders/*.mp4 promo/out/renders/*.contact.png --clobber
+          latest_after=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+          echo "latest release: $latest_before → $latest_after"
+          test "$latest_before" = "$latest_after"
+          case "$latest_after" in apk-*) ;; *) echo "latest is not the APK release!"; exit 1 ;; esac

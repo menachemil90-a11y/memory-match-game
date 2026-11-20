@@ -1,0 +1,215 @@
+{
+  "$comment": "Promo videos: scenes, timings (seconds) and captions per language. Edit here and re-render (promo/render/render.mjs). Footage clips come from promo/capture/capture.mjs; 'from' is a marker in the clip (+ offset, in seconds). Captions: 2–6 words, max 2 lines.",
+  "fps": 30,
+  "endcard": {
+    "dur": 2.5,
+    "he": { "line1": "חינם לאנדרואיד", "line2": "משחקים אונליין גם מהדפדפן" },
+    "en": { "line1": "Free for Android", "line2": "Play online in your browser too" },
+    "url": "memorymatch-online.pages.dev"
+  },
+  "videos": [
+    {
+      "id": "family-photos",
+      "title": "Your family on the cards",
+      "scenes": [
+        {
+          "type": "hook-flip",
+          "dur": 2.2,
+          "photo": "02-grandma-baking",
+          "caption": {
+            "he": "הפכו את תמונות המשפחה למשחק זיכרון",
+            "en": "Turn your family photos into a memory game"
+          }
+        },
+        {
+          "type": "gallery",
+          "dur": 2.8,
+          "caption": { "he": "בוחרים תמונות מהגלריה", "en": "Pick photos from your gallery" }
+        },
+        {
+          "type": "phone",
+          "dur": 2.8,
+          "clip": "family-photos",
+          "from": { "marker": "dealt", "offset": -0.2 },
+          "caption": { "he": "כל משחק — ערבוב חדש", "en": "A new shuffle every game" }
+        },
+        {
+          "type": "phone",
+          "dur": 2.6,
+          "clip": "family-photos",
+          "from": { "marker": "miss:start", "offset": -0.15 },
+          "caption": { "he": "איפה סבתא? 👵", "en": "Where's Grandma? 👵" }
+        },
+        {
+          "type": "phone",
+          "dur": 3.0,
+          "clip": "family-photos",
+          "from": { "marker": "found:start", "offset": -0.15 },
+          "zoom": 1.08,
+          "caption": { "he": "מצאתם! 🎉", "en": "Found her! 🎉" }
+        },
+        { "type": "endcard" }
+      ]
+    },
+    {
+      "id": "play-with-grandma",
+      "title": "Online with family far away",
+      "scenes": [
+        {
+          "type": "two-phones",
+          "dur": 2.4,
+          "left": "grandma-mom",
+          "right": "grandma-browser",
+          "from": { "clip": "left", "marker": "turn:grandma", "nth": 1, "offset": -0.3 },
+          "caption": {
+            "he": "סבתא גרה רחוק? שחקו איתה עכשיו",
+            "en": "Grandma lives far away? Play with her now"
+          }
+        },
+        {
+          "type": "chat",
+          "dur": 2.6,
+          "caption": { "he": "שולחים לה קישור", "en": "Send her a link" }
+        },
+        {
+          "type": "phone",
+          "dur": 4.2,
+          "clip": "grandma-browser",
+          "from": { "marker": "open-link", "offset": 0.2 },
+          "browser": true,
+          "caption": {
+            "he": "היא משחקת מהדפדפן — בלי להוריד כלום",
+            "en": "She plays in her browser — nothing to download"
+          }
+        },
+        {
+          "type": "two-phones",
+          "dur": 4.6,
+          "left": "grandma-mom",
+          "right": "grandma-browser",
+          "from": { "clip": "left", "marker": "turn:mom", "nth": 1, "offset": -0.2 },
+          "captions": [
+            { "at": 0, "he": "התור שלך…", "en": "Your turn…" },
+            { "at": 2.3, "he": "התור של סבתא…", "en": "Grandma's turn…" }
+          ]
+        },
+        {
+          "type": "two-phones",
+          "dur": 2.8,
+          "left": "grandma-mom",
+          "right": "grandma-browser",
+          "from": { "clip": "left", "end": true, "offset": -3.0 },
+          "sfx": [{ "at": 0.1, "sound": "win" }],
+          "caption": { "he": "וסבתא מנצחת 🏆", "en": "And Grandma wins 🏆" }
+        },
+        { "type": "endcard" }
+      ]
+    },
+    {
+      "id": "kids-vs-parents",
+      "title": "2 players, 1 phone",
+      "scenes": [
+        {
+          "type": "phone",
+          "dur": 2.4,
+          "clip": "two-players",
+          "from": { "marker": "dealt", "offset": 1.6 },
+          "caption": {
+            "he": "למי יש זיכרון יותר טוב — לכם או לילדים?",
+            "en": "Who has the better memory — you or your kids?"
+          }
+        },
+        {
+          "type": "phone",
+          "dur": 3.4,
+          "clip": "two-players",
+          "from": { "start": true, "offset": 0.3 },
+          "caption": { "he": "2 שחקנים, טלפון אחד", "en": "2 players, 1 phone" }
+        },
+        {
+          "type": "phone",
+          "dur": 5.0,
+          "clip": "two-players",
+          "from": { "goAgain": true, "offset": -0.3 },
+          "caption": { "he": "מצאתם זוג? ממשיכים לשחק", "en": "Found a pair? Go again" }
+        },
+        {
+          "type": "phone",
+          "dur": 2.8,
+          "clip": "two-players",
+          "from": { "end": true, "offset": -2.9 },
+          "sfx": [{ "at": 0.1, "sound": "win" }],
+          "caption": { "he": "הילדים ניצחו. שוב. 😅", "en": "The kids won. Again. 😅" }
+        },
+        { "type": "endcard" }
+      ]
+    },
+    {
+      "id": "grows-with-kids",
+      "title": "Difficulty levels",
+      "scenes": [
+        {
+          "type": "phone",
+          "dur": 2.6,
+          "clip": "levels-picker",
+          "from": { "start": true, "offset": 0.2 },
+          "caption": {
+            "he": "משחק זיכרון שגדל עם הילדים",
+            "en": "A memory game that grows with your kids"
+          }
+        },
+        {
+          "type": "phone",
+          "dur": 3.4,
+          "clip": "tiny-play",
+          "from": { "start": true, "offset": 0 },
+          "caption": { "he": "3 זוגות לקטנטנים", "en": "3 pairs for little ones" }
+        },
+        {
+          "type": "montage",
+          "dur": 4.6,
+          "clips": [
+            { "clip": "level-easy", "from": { "marker": "deal", "offset": 0.3 }, "dur": 0.85 },
+            { "clip": "level-medium", "from": { "marker": "deal", "offset": 0.3 }, "dur": 0.85 },
+            { "clip": "level-tricky", "from": { "marker": "deal", "offset": 0.3 }, "dur": 0.85 },
+            { "clip": "level-hard", "from": { "marker": "deal", "offset": 0.3 }, "dur": 0.9 },
+            { "clip": "level-expert", "from": { "marker": "deal", "offset": 0.5 }, "dur": 1.15 }
+          ],
+          "caption": { "he": "ועד 18 זוגות לאלופים", "en": "Up to 18 pairs for champions" }
+        },
+        {
+          "type": "phone",
+          "dur": 2.6,
+          "clip": "levels-picker",
+          "from": { "end": true, "offset": -1.2 },
+          "freezeAfter": 1.1,
+          "caption": { "he": "6 רמות קושי", "en": "6 difficulty levels" }
+        },
+        { "type": "endcard" }
+      ]
+    },
+    {
+      "id": "20-second-challenge",
+      "title": "Speed run",
+      "scenes": [
+        {
+          "type": "speedrun",
+          "clip": "speedrun",
+          "from": { "marker": "run:start", "offset": -0.3 },
+          "until": { "marker": "run:end", "offset": 1.4 },
+          "limit": 20,
+          "caption": {
+            "he": "מצליחים לנקות את הלוח ב-20 שניות?",
+            "en": "Can you clear the board in 20 seconds?"
+          },
+          "captionDur": 2.6,
+          "after": {
+            "dur": 2.6,
+            "caption": { "he": "נסו לנצח את הזמן הזה", "en": "Try to beat this time" }
+          }
+        },
+        { "type": "endcard" }
+      ]
+    }
+  ]
+}

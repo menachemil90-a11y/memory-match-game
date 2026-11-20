@@ -5,3 +5,6 @@ android
 ios
 package-lock.json
 supabase/tests/.build
+promo/out
+promo/node_modules
+promo/package-lock.json

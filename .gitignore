@@ -43,3 +43,7 @@ yarn-error.*
 # Playwright
 playwright-report/
 test-results/
+
+# Promo videos: builds, footage and renders (renders go to the promo-v1 release)
+promo/out/
+promo/node_modules/

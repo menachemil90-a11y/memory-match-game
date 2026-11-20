@@ -1,0 +1,136 @@
+<!doctype html>
+<!--
+  The promo video "stage": render.mjs loads this page at the output size
+  (1080×1920 or 1080×1350), calls setup(spec) once, then draw(t) for every frame
+  and takes a screenshot. Everything here is the game's own look: the purple
+  gradient (colors.backgroundGradient), Fredoka, the card backs and the cream card
+  border. Footage frames are real recordings of the game (promo/capture).
+-->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @font-face {
+        font-family: 'Fredoka';
+        font-weight: 600;
+        src: url('../../node_modules/@expo-google-fonts/fredoka/600SemiBold/Fredoka_600SemiBold.ttf');
+      }
+      @font-face {
+        font-family: 'Fredoka';
+        font-weight: 700;
+        src: url('../../node_modules/@expo-google-fonts/fredoka/700Bold/Fredoka_700Bold.ttf');
+      }
+      html,
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      #stage {
+        position: relative;
+        overflow: hidden;
+        font-family: 'Fredoka', sans-serif;
+        /* colors.backgroundGradient */
+        background: linear-gradient(170deg, #7b5cff 0%, #5b3fd9 52%, #2a82cc 100%);
+      }
+      .glow {
+        position: absolute;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 70%);
+        pointer-events: none;
+      }
+      .abs {
+        position: absolute;
+      }
+      .caption {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: #fff;
+        font-weight: 700;
+        line-height: 1.12;
+        -webkit-text-stroke: 0.09em #2b1a7a;
+        paint-order: stroke fill;
+        text-shadow: 0 0.06em 0.12em rgba(20, 10, 60, 0.55);
+        transform-origin: 50% 60%;
+      }
+      .caption span {
+        display: block;
+      }
+      .emoji {
+        height: 0.95em;
+        width: 0.95em;
+        vertical-align: -0.14em;
+        margin: 0 0.12em;
+        -webkit-text-stroke: 0;
+      }
+      .phone {
+        position: absolute;
+        background: linear-gradient(160deg, #2a2150, #120d2b 60%);
+        box-shadow:
+          0 30px 60px rgba(20, 10, 60, 0.45),
+          inset 0 0 0 2px rgba(255, 255, 255, 0.14);
+      }
+      .screen {
+        position: absolute;
+        overflow: hidden;
+        background: #5b3fd9;
+      }
+      .screen img.footage {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        transform-origin: 50% 45%;
+      }
+      .urlbar {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        background: #f3f1fb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .urlbar .field {
+        display: flex;
+        align-items: center;
+        gap: 0.4em;
+        background: #e3dff3;
+        color: #2b2152;
+        border-radius: 999px;
+        padding: 0.18em 0.9em;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .card {
+        position: absolute;
+        border-radius: 16%;
+        overflow: hidden;
+        background: #fff8ec;
+        box-shadow: 0 10px 24px rgba(20, 10, 60, 0.35);
+        backface-visibility: hidden;
+      }
+      .card img {
+        position: absolute;
+        object-fit: cover;
+      }
+      .pill {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <script src="stage.js"></script>
+  </body>
+</html>

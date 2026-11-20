@@ -29,19 +29,37 @@ export function isolate(text: string): string {
   return `${FSI}${text}${PDI}`;
 }
 
+/** Unicode Left-to-Right Mark (invisible). */
+const LRM = '\u200E';
+
+/**
+ * The UI sentences are English (left to right). One that starts with a name
+ * ("נועה's turn!") would otherwise be laid out right to left on the web: there
+ * text gets dir="auto", which takes the paragraph direction from the first
+ * strong letter — the name's, even inside an isolate. An invisible LRM in
+ * front keeps the sentence LTR everywhere.
+ */
+export function ltrSentence(text: string): string {
+  return text.startsWith(FSI) ? `${LRM}${text}` : text;
+}
+
 export function initI18n(): typeof i18n {
   if (!initialized) {
     initialized = true;
     // eslint-disable-next-line import/no-named-as-default-member
-    void i18n.use(initReactI18next).init({
-      resources,
-      lng: 'en',
-      fallbackLng: 'en',
-      defaultNS,
-      interpolation: { escapeValue: false },
-      returnNull: false,
-      initAsync: false,
-    });
+    void i18n
+      .use(initReactI18next)
+      .use({ type: 'postProcessor', name: 'ltrSentence', process: ltrSentence })
+      .init({
+        resources,
+        lng: 'en',
+        fallbackLng: 'en',
+        defaultNS,
+        interpolation: { escapeValue: false },
+        returnNull: false,
+        initAsync: false,
+        postProcess: ['ltrSentence'],
+      });
     i18n.services.formatter?.add('isolate', (value: unknown) => isolate(String(value)));
   }
   return i18n;

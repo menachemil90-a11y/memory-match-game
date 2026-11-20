@@ -1,0 +1,15 @@
+{
+  "name": "memory-match-promo",
+  "private": true,
+  "type": "module",
+  "description": "Promo video tooling (capture + render). Separate from the app: its own dependencies, never shipped.",
+  "scripts": {
+    "build:capture": "node capture/build-capture-web.mjs",
+    "capture": "node capture/capture.mjs",
+    "render": "node render/render.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.119.0",
+    "playwright": "1.63.0"
+  }
+}
