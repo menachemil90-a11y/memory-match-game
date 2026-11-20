@@ -609,10 +609,12 @@ async function grandmaGame(browser, lang, grandmaName) {
   // Mom keeps missing; Grandma takes every pair she knows.
   const known = new Map();
   let r = await room(host.client, r0.id);
+  let momTurns = 0;
   for (let turn = 0; turn < 30 && r.status === 'playing'; turn++) {
     log(`grandma ${lang} turn ${turn}: seat ${r.current_player}, pairs ${r.pairs_found}`);
     if (r.current_player === 0) {
       momRec.mark('turn:mom');
+      momTurns++;
       r = (await pageTurn(mom.page, host, r.id, missPair(known, r), known, momRec)).room;
     } else {
       grandmaRec.mark('turn:grandma');
@@ -639,7 +641,9 @@ async function grandmaGame(browser, lang, grandmaName) {
   await mom.ctx.close();
   await grandma.ctx.close();
   await rpc(host.client, 'leave_room', { p_room_id: r0.id }).catch(() => undefined);
-  return finished.winner === 1;
+  // The video shows turns going back and forth: Mom must have played too.
+  log(`grandma ${lang}: Mom had ${momTurns} turns`);
+  return finished.winner === 1 && momTurns >= 2;
 }
 
 /** On a failure or a hang: a screenshot of every open phone, for the CI artifact. */
