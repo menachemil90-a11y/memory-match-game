@@ -223,7 +223,11 @@ function missPair(known, r, avoid = new Set()) {
   const first = unknown[0] ?? open[0];
   const firstImage = known.get(first);
   const different = open.find((i) => i !== first && known.has(i) && known.get(i) !== firstImage);
-  const second = different ?? open.find((i) => i !== first && !known.has(i));
+  // Only one pair left: no miss is possible, any second card will do.
+  const second =
+    different ??
+    open.find((i) => i !== first && !known.has(i)) ??
+    openCards(r).find((i) => i !== first);
   return [first, second];
 }
 
@@ -414,10 +418,14 @@ const clips = {
       ['en', 'Grandma'],
       ['he', 'סבתא'],
     ]) {
-      for (let attempt = 1; attempt <= 4; attempt++) {
-        const won = await grandmaGame(browser, lang, grandmaName);
+      for (let attempt = 1; attempt <= 6; attempt++) {
+        const won = await grandmaGame(browser, lang, grandmaName).catch((error) => {
+          if (attempt === 6) throw error;
+          log(`grandma ${lang} attempt ${attempt} failed: ${error.message}`);
+          return false;
+        });
         if (won) break;
-        if (attempt === 4) throw new Error('Grandma never won');
+        if (attempt === 6) throw new Error('Grandma never won');
       }
     }
   },

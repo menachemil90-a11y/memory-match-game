@@ -50,7 +50,7 @@ export async function startRecording(page, dir) {
           }),
         );
       } catch (error) {
-        if (!running) break;
+        if (!running || /has been closed/i.test(String(error))) break;
         // A navigation to another site swaps the page's process: attach again.
         if (/not attached|detached|session closed|target closed|timed out/i.test(String(error))) {
           await new Promise((ok) => setTimeout(ok, 100));
