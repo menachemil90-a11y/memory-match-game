@@ -99,8 +99,9 @@ async function faceUpLabel(page, i) {
 /** Taps card i and waits until it shows its face; returns the face's label. */
 async function flip(page, i, rec) {
   for (let attempt = 0; attempt < 8; attempt++) {
+    // Online, the page may still be showing the other player's turn for a moment.
+    await card(page, i).click({ timeout: 15_000 });
     rec?.mark('flip');
-    await card(page, i).click({ timeout: 5000 });
     for (let w = 0; w < 25; w++) {
       const label = await faceUpLabel(page, i);
       if (label) return label;
@@ -662,22 +663,27 @@ const browser = await chromium.launch();
 try {
   for (const name of wanted.length ? wanted : Object.keys(clips)) {
     if (!clips[name]) throw new Error(`unknown clip ${name}`);
-    log(`== ${name}`);
-    let timer;
-    const watchdog = new Promise((_, fail) => {
-      timer = setTimeout(
-        () => fail(new Error(`${name}: still running after 15 min`)),
-        CLIP_LIMIT_MS,
-      );
-    });
-    try {
-      await Promise.race([clips[name](browser), watchdog]);
-    } catch (error) {
-      log(`!! ${name} failed: ${error.stack ?? error}`);
-      await debugShots(browser, name);
-      throw error;
-    } finally {
-      clearTimeout(timer);
+    // Live games over the network can stumble: each clip gets 3 tries.
+    for (let attempt = 1; ; attempt++) {
+      log(`== ${name}${attempt > 1 ? ` (try ${attempt})` : ''}`);
+      let timer;
+      const watchdog = new Promise((_, fail) => {
+        timer = setTimeout(
+          () => fail(new Error(`${name}: still running after 15 min`)),
+          CLIP_LIMIT_MS,
+        );
+      });
+      try {
+        await Promise.race([clips[name](browser), watchdog]);
+        break;
+      } catch (error) {
+        log(`!! ${name} failed: ${error.stack ?? error}`);
+        await debugShots(browser, `${name}-${attempt}`);
+        for (const ctx of browser.contexts()) await ctx.close().catch(() => undefined);
+        if (attempt === 3) throw error;
+      } finally {
+        clearTimeout(timer);
+      }
     }
   }
 } finally {
