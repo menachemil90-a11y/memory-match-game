@@ -574,6 +574,7 @@ async function grandmaGame(browser, lang, grandmaName) {
   grandmaRec.meta.code = r0.code;
   await sleep(1200);
   grandmaRec.mark('open-link');
+  log(`grandma ${lang}: opening the invite, room ${r0.code}`);
   await grandma.page.goto(`/join/?c=${r0.code}`, { waitUntil: 'networkidle' });
   await grandma.page.getByPlaceholder('Your nickname').waitFor({ timeout: 20_000 });
   await sleep(900);
@@ -590,6 +591,7 @@ async function grandmaGame(browser, lang, grandmaName) {
   grandmaRec.mark('join');
   momRec.mark('join');
   await grandma.page.getByRole('button', { name: 'Join the game' }).click();
+  log(`grandma ${lang}: joined`);
   await waitForCards(mom.page, 6);
   await waitForCards(grandma.page, 6);
   momRec.mark('dealt');
@@ -599,6 +601,7 @@ async function grandmaGame(browser, lang, grandmaName) {
   const known = new Map();
   let r = await room(host.client, r0.id);
   for (let turn = 0; turn < 30 && r.status === 'playing'; turn++) {
+    log(`grandma ${lang} turn ${turn}: seat ${r.current_player}, pairs ${r.pairs_found}`);
     if (r.current_player === 0) {
       momRec.mark('turn:mom');
       r = (await pageTurn(mom.page, host, r.id, missPair(known, r), known, momRec)).room;
@@ -630,13 +633,44 @@ async function grandmaGame(browser, lang, grandmaName) {
   return finished.winner === 1;
 }
 
+/** On a failure or a hang: a screenshot of every open phone, for the CI artifact. */
+async function debugShots(browser, name) {
+  const dir = join(OUT, '..', 'debug');
+  mkdirSync(dir, { recursive: true });
+  let n = 0;
+  for (const ctx of browser.contexts()) {
+    for (const page of ctx.pages()) {
+      await page
+        .screenshot({ path: join(dir, `${name}-${n++}.png`), timeout: 5000 })
+        .catch(() => undefined);
+    }
+  }
+  log(`debug: ${n} screenshots in out/debug`);
+}
+
+const CLIP_LIMIT_MS = 15 * 60_000;
 const wanted = process.argv.slice(2);
 const browser = await chromium.launch();
 try {
   for (const name of wanted.length ? wanted : Object.keys(clips)) {
     if (!clips[name]) throw new Error(`unknown clip ${name}`);
     log(`== ${name}`);
-    await clips[name](browser);
+    let timer;
+    const watchdog = new Promise((_, fail) => {
+      timer = setTimeout(
+        () => fail(new Error(`${name}: still running after 15 min`)),
+        CLIP_LIMIT_MS,
+      );
+    });
+    try {
+      await Promise.race([clips[name](browser), watchdog]);
+    } catch (error) {
+      log(`!! ${name} failed: ${error.stack ?? error}`);
+      await debugShots(browser, name);
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 } finally {
   await browser.close();

@@ -66,6 +66,7 @@ jobs:
             for i in $(seq 1 30); do curl -sf "http://localhost:$port/" > /dev/null && break; sleep 1; done
           done
       - name: Film the game
+        timeout-minutes: 45
         working-directory: promo
         env:
           WEB_URL: http://localhost:8097
@@ -84,6 +85,14 @@ jobs:
               -show_entries format=duration -of compact "$f"
           done
           test "$(ls *.mp4 | wc -l)" -eq 20
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: promo-debug
+          path: |
+            promo/out/debug
+            promo/out/footage/*/clip.json
+          retention-days: 7
       - uses: actions/upload-artifact@v4
         if: always()
         with:

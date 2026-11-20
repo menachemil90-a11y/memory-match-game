@@ -15,6 +15,17 @@ import { join } from 'node:path';
 /** Device scale of the footage: 360×640 CSS px → 720×1280 (the phone screen in the videos is ≤ 720 px wide). */
 export const SCALE = 2;
 
+/** A CDP call can hang while a page swaps processes: give up after a few seconds. */
+function withTimeout(promise, ms = 5000) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, fail) => {
+      timer = setTimeout(() => fail(new Error('screenshot timed out')), ms);
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
+
 export async function startRecording(page, dir) {
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(join(dir, 'frames'), { recursive: true });
@@ -30,18 +41,20 @@ export async function startRecording(page, dir) {
       try {
         // The clip's scale renders at full device resolution (without it the
         // capture is a 360×640 image scaled up: soft).
-        shot = await cdp.send('Page.captureScreenshot', {
-          format: 'jpeg',
-          quality: 90,
-          optimizeForSpeed: true,
-          clip: { x: 0, y: 0, width: viewport.width, height: viewport.height, scale: SCALE },
-        });
+        shot = await withTimeout(
+          cdp.send('Page.captureScreenshot', {
+            format: 'jpeg',
+            quality: 90,
+            optimizeForSpeed: true,
+            clip: { x: 0, y: 0, width: viewport.width, height: viewport.height, scale: SCALE },
+          }),
+        );
       } catch (error) {
         if (!running) break;
         // A navigation to another site swaps the page's process: attach again.
-        if (/not attached|detached|session closed|target closed/i.test(String(error))) {
-          await new Promise((ok) => setTimeout(ok, 50));
-          cdp = await page.context().newCDPSession(page);
+        if (/not attached|detached|session closed|target closed|timed out/i.test(String(error))) {
+          await new Promise((ok) => setTimeout(ok, 100));
+          cdp = await withTimeout(page.context().newCDPSession(page)).catch(() => cdp);
           continue;
         }
         throw error;
@@ -61,7 +74,7 @@ export async function startRecording(page, dir) {
     meta: {},
     async stop() {
       running = false;
-      await loop;
+      await withTimeout(loop, 10_000).catch(() => undefined);
       await cdp.detach().catch(() => undefined);
       writeFileSync(
         join(dir, 'clip.json'),
