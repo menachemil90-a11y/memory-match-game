@@ -215,28 +215,22 @@ function leave(state: GameState, player: number): GameState {
   const players = updatePlayer(state.players, player, (p) => ({ ...p, left: true, streak: 0 }));
   const remaining = players.filter((p) => !p.left).length;
   const theirTurn = player === state.currentPlayer;
-  const cards = theirTurn
-    ? updateCards(state.cards, state.flipped, { status: 'down' })
-    : state.cards;
-  const common = {
+  const over = remaining <= 1;
+  // Open cards flip back when the turn is cut short (theirs, or the whole game's).
+  const closeOpenCards = theirTurn || over;
+  const next: GameState = {
     ...state,
-    cards,
+    cards: closeOpenCards
+      ? updateCards(state.cards, state.flipped, { status: 'down' })
+      : state.cards,
     players,
-    flipped: theirTurn ? [] : state.flipped,
-    pendingResult: theirTurn ? null : state.pendingResult,
+    flipped: closeOpenCards ? [] : state.flipped,
+    pendingResult: closeOpenCards ? null : state.pendingResult,
     version: state.version + 1,
   };
-  if (remaining <= 1) {
-    return {
-      ...common,
-      flipped: [],
-      pendingResult: null,
-      phase: 'finished',
-      endReason: 'abandoned',
-    };
-  }
-  if (!theirTurn) return common;
-  return { ...common, currentPlayer: nextInGame(players, player), phase: 'awaitingFirst' };
+  if (over) return { ...next, phase: 'finished', endReason: 'abandoned' };
+  if (!theirTurn) return next;
+  return { ...next, currentPlayer: nextInGame(players, player), phase: 'awaitingFirst' };
 }
 
 /**

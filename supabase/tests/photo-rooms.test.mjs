@@ -310,7 +310,7 @@ describe('built-in rooms are unchanged', () => {
     expect(attempt).toMatch(/unknown_board/);
   });
 
-  it('API grants: two new game functions for players, nothing for visitors', async () => {
+  it('API grants: the game functions for players, nothing for visitors', async () => {
     const rows = await server.admin(
       `select p.proname, has_function_privilege('authenticated', p.oid, 'execute') as auth,
               has_function_privilege('anon', p.oid, 'execute') as anon
@@ -319,6 +319,7 @@ describe('built-in rooms are unchanged', () => {
     );
     expect(rows.filter((r) => r.anon).map((r) => r.proname)).toEqual([]);
     expect(rows.filter((r) => r.auth).map((r) => r.proname)).toEqual([
+      'claim_disconnect',
       'claim_disconnect_win',
       'claim_timeout',
       'create_photo_room',
@@ -331,6 +332,7 @@ describe('built-in rooms are unchanged', () => {
       'request_rematch',
       'resolve_turn',
       'server_time',
+      'start_room',
     ]);
   });
 });

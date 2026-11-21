@@ -66,12 +66,21 @@ const SUPABASE_STUBS = `
   grant usage on schema public to service_role;
 `;
 
-export async function startTestServer() {
+/** Migration files in the order they are applied. */
+export const MIGRATION_FILES = readdirSync(MIGRATIONS)
+  .filter((f) => f.endsWith('.sql'))
+  .sort();
+
+/**
+ * A database with the migrations applied — all of them, or only those before
+ * `until` (to test a migration against data made by the older schema; apply the
+ * rest with `migrate()`).
+ */
+export async function startTestServer({ until = null } = {}) {
   const db = await PGlite.create({ extensions: { pgcrypto } });
   await db.exec(SUPABASE_STUBS);
-  for (const file of readdirSync(MIGRATIONS)
-    .filter((f) => f.endsWith('.sql'))
-    .sort()) {
+  const applied = until === null ? MIGRATION_FILES : MIGRATION_FILES.filter((f) => f < until);
+  for (const file of applied) {
     await db.exec(readFileSync(join(MIGRATIONS, file), 'utf8'));
   }
 
@@ -133,6 +142,13 @@ export async function startTestServer() {
       const rows = await as(uid, `select to_jsonb(${fn}(${call})) as r`, Object.values(args));
       return rows[0].r;
     },
+    /** Applies the remaining migrations from `file` on (see `until`). */
+    migrate: (file) =>
+      serial(async () => {
+        for (const f of MIGRATION_FILES.filter((m) => m >= file)) {
+          await db.exec(readFileSync(join(MIGRATIONS, f), 'utf8'));
+        }
+      }),
     close: () => db.close(),
   };
 }

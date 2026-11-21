@@ -65,7 +65,9 @@ describe('rooms', () => {
     });
     expect(room.code).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
     expect(room.status).toBe('waiting');
-    expect(room.players).toEqual([{ name: 'Noa', avatar: 'fox' }]);
+    expect(room.players).toEqual([
+      { name: 'Noa', avatar: 'fox', uid: HOST, left: false, rank: null },
+    ]);
   });
 
   it('starts the game when a friend joins, with a random first player', async () => {
@@ -158,7 +160,17 @@ describe('rooms', () => {
       /permission denied/,
     );
     expect(await errorOf(server.asAnon(`select * from public.rooms`))).toMatch(/permission denied/);
-    expect(await server.asAnon(`select key from public.app_config order by key`)).toHaveLength(4);
+    expect(
+      (await server.asAnon(`select key from public.app_config order by key`)).map((r) => r.key),
+    ).toEqual([
+      'disconnect_grace_seconds',
+      'max_players',
+      'min_supported_version',
+      'online_protocol',
+      'party_rooms_min_protocol',
+      'photo_rooms_min_version',
+      'turn_seconds',
+    ]);
   });
 
   it('API roles can only read tables: no write grants despite Supabase default privileges', async () => {
@@ -170,6 +182,7 @@ describe('rooms', () => {
     expect(grants.map((g) => `${g.table_name} ${g.grantee} ${g.privilege_type}`)).toEqual([
       'app_config anon SELECT',
       'app_config authenticated SELECT',
+      'room_seats authenticated SELECT',
       'rooms authenticated SELECT',
     ]);
     for (const sql of [
@@ -177,6 +190,10 @@ describe('rooms', () => {
       `update public.app_config set value = '"9.9.9"'`,
       `delete from public.app_config`,
       `truncate public.rooms`,
+      `insert into public.room_seats (room_id, seat, user_id, name, avatar)
+         select id, 5, '${STRANGER}', 'Zed', 'owl' from public.rooms limit 1`,
+      `update public.room_seats set has_left = true`,
+      `delete from public.room_seats`,
     ]) {
       expect(await errorOf(server.as(HOST, sql))).toMatch(/permission denied/);
     }
@@ -414,8 +431,9 @@ describe('end of game, rematch and disconnects', () => {
     expect(
       await errorOf(server.rpc(HOST, 'public.claim_disconnect_win', { p_room_id: room.id })),
     ).toMatch(/opponent_still_connected/);
+    // Silence is judged by the seat's last heartbeat (room_seats.seen_at).
     await server.admin(
-      "update public.rooms set guest_seen_at = now() - interval '61 seconds' where id = $1",
+      "update public.room_seats set seen_at = now() - interval '61 seconds' where room_id = $1 and seat = 1",
       [room.id],
     );
     const won = await server.rpc(HOST, 'public.claim_disconnect_win', { p_room_id: room.id });

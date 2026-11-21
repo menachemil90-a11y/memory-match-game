@@ -153,6 +153,13 @@ describe('players leaving (online)', () => {
     expect(g.pendingResult).toBeNull();
   });
 
+  it('when the game ends by leaving, any open card flips back', () => {
+    let g = createGame({ levelId: 'medium', layout: MEDIUM, players: players(2) });
+    g = play(g, flip(0), leave(1));
+    expect(g).toMatchObject({ phase: 'finished', flipped: [], pendingResult: null });
+    expect(g.cards[0]!.status).toBe('down');
+  });
+
   it('ignores leaving twice, unknown players and finished games', () => {
     const g = gameReducer(
       createGame({ levelId: 'medium', layout: MEDIUM, players: players(3) }),
