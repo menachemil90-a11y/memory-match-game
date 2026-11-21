@@ -46,6 +46,11 @@ export interface PlayerState extends PlayerSetup {
   readonly bestStreak: number;
   /** Current run of consecutive matches in this turn. */
   readonly streak: number;
+  /**
+   * Left the game (online: left or lost connection). Their turns are skipped;
+   * the pairs they collected stay theirs, and they rank after everyone who stayed.
+   */
+  readonly left: boolean;
 }
 
 /**
@@ -55,7 +60,7 @@ export interface PlayerState extends PlayerSetup {
  *   locked until a `resolve` (or `timeout`) action. The UI dispatches
  *   `resolve` after its match/mismatch animation (or when the board is tapped
  *   to skip the mismatch delay).
- * - `finished`: all pairs collected.
+ * - `finished`: all pairs collected, or only one player is still in the game.
  */
 export type GamePhase = 'awaitingFirst' | 'awaitingSecond' | 'resolving' | 'finished';
 
@@ -78,17 +83,32 @@ export interface GameState {
   readonly moves: number;
   readonly pairsTotal: number;
   readonly pairsFound: number;
+  /** Why the game ended: every pair found, or everyone else left. */
+  readonly endReason: 'complete' | 'abandoned' | null;
   /** Increments on every accepted action; useful for syncing/optimistic locking. */
   readonly version: number;
 }
 
 export type GameAction =
-  { type: 'flip'; index: number; player?: number } | { type: 'resolve' } | { type: 'timeout' };
+  | { type: 'flip'; index: number; player?: number }
+  | { type: 'resolve' }
+  | { type: 'timeout' }
+  /** A player leaves for good (online). See `PlayerState.left`. */
+  | { type: 'leave'; player: number };
 
 export interface GameOutcome {
-  /** Player indices with the most pairs (more than one means a tie). */
+  /** Player indices ranked first (more than one means a tie). */
   winners: number[];
   isTie: boolean;
   /** Pair counts by player index. */
   scores: number[];
+}
+
+/** One line of the final ranking. */
+export interface Standing {
+  player: number;
+  /** 1 = first. Equal scores share a place (1, 1, 3, …). */
+  rank: number;
+  score: number;
+  left: boolean;
 }

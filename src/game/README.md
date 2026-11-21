@@ -8,7 +8,8 @@ code runs in Jest, in the app and on the server.
 | ------------ | -------------------------------------------------------------------------- |
 | `types.ts`   | `GameState`, `CardState`, `PlayerState`, `GameAction`, `LevelId`           |
 | `levels.ts`  | Tiny…Expert table (pairs, cols × rows), locked-level logic and hints       |
-| `engine.ts`  | `createGame`, `gameReducer` (flip / resolve / timeout), outcome, rematch   |
+| `players.ts` | `MAX_PLAYERS` (8) and the smallest board per player count                  |
+| `engine.ts`  | `createGame`, `gameReducer` (flip / resolve / timeout / leave), ranking    |
 | `rng.ts`     | Unbiased integers from an injected secure byte source (rejection sampling) |
 | `shuffle.ts` | Fisher–Yates shuffle and random subset                                     |
 | `deal.ts`    | Layout hashing and `dealUniqueLayout` — "never the same board twice"       |
@@ -25,7 +26,18 @@ awaitingFirst --flip--> awaitingSecond --flip--> resolving --resolve--> awaiting
 
 The UI dispatches `resolve` after its match/mismatch animation (or as soon as
 the board is tapped during a mismatch). `timeout` (online turn timer) flips any
-open card back and passes the turn.
+open card back and passes the turn. `leave` (online) marks a player as gone: their
+turns are skipped, and once one player is left the game ends.
+
+## Players
+
+2–8 players (`MAX_PLAYERS`, mirrored by the server's `app_config.max_players`). So
+that nobody is left without turns, bigger groups need bigger boards
+(`minPairsForPlayers`): 2 players → any level, 3–4 → at least 8 pairs, 5–8 → at
+least 12. `createGame` rejects other combinations. A miss passes the turn to the
+next player in seating order who is still in the game. `getRanking` ranks by
+pairs with shared places for ties (1, 1, 3); players who left rank after everyone
+who stayed.
 
 ## No-repeat dealing
 

@@ -1,4 +1,5 @@
 import { getLevel } from './levels';
+import { MAX_PLAYERS, isLevelAllowedForPlayers, minPairsForPlayers } from './players';
 import type {
   CardState,
   GameAction,
@@ -8,6 +9,7 @@ import type {
   Layout,
   PlayerSetup,
   PlayerState,
+  Standing,
 } from './types';
 
 export interface CreateGameOptions {
@@ -36,6 +38,14 @@ export function createGame({
     throw new Error('Layout must contain every image exactly twice');
   }
   if (players.length < 1) throw new Error('At least one player is required');
+  if (players.length > MAX_PLAYERS) {
+    throw new RangeError(`At most ${MAX_PLAYERS} players can play (got ${players.length})`);
+  }
+  if (!isLevelAllowedForPlayers(levelId, players.length)) {
+    throw new RangeError(
+      `${players.length} players need a board of at least ${minPairsForPlayers(players.length)} pairs; ${levelId} has ${level.pairs}`,
+    );
+  }
   if (!Number.isInteger(startingPlayer) || startingPlayer < 0 || startingPlayer >= players.length) {
     throw new RangeError(`Invalid starting player: ${startingPlayer}`);
   }
@@ -57,6 +67,7 @@ export function createGame({
       moves: 0,
       streak: 0,
       bestStreak: 0,
+      left: false,
     })),
     currentPlayer: startingPlayer,
     startingPlayer,
@@ -66,6 +77,7 @@ export function createGame({
     moves: 0,
     pairsTotal: level.pairs,
     pairsFound: 0,
+    endReason: null,
     version: 0,
   };
 }
@@ -86,8 +98,17 @@ function updatePlayer(
   return players.map((p, i) => (i === index ? update(p) : p));
 }
 
+/** The next player after `from` in seating order who is still in the game. */
+function nextInGame(players: readonly PlayerState[], from: number): number {
+  for (let step = 1; step <= players.length; step++) {
+    const candidate = (from + step) % players.length;
+    if (!players[candidate]!.left) return candidate;
+  }
+  return from;
+}
+
 function nextPlayer(state: GameState): number {
-  return (state.currentPlayer + 1) % state.players.length;
+  return nextInGame(state.players, state.currentPlayer);
 }
 
 function flip(state: GameState, index: number, player: number | undefined): GameState {
@@ -150,6 +171,7 @@ function resolve(state: GameState): GameState {
       pairsFound,
       // A match keeps the turn with the same player.
       phase: finished ? 'finished' : 'awaitingFirst',
+      endReason: finished ? 'complete' : null,
       version: state.version + 1,
     };
   }
@@ -182,6 +204,42 @@ function timeout(state: GameState): GameState {
 }
 
 /**
+ * A player leaves for good. Their open cards (if it was their turn) flip back —
+ * a pair they had just found is not collected — and the turn passes on. Once
+ * only one player is left, the game is over.
+ */
+function leave(state: GameState, player: number): GameState {
+  if (state.phase === 'finished') return state;
+  const leaver = state.players[player];
+  if (!Number.isInteger(player) || !leaver || leaver.left) return state;
+  const players = updatePlayer(state.players, player, (p) => ({ ...p, left: true, streak: 0 }));
+  const remaining = players.filter((p) => !p.left).length;
+  const theirTurn = player === state.currentPlayer;
+  const cards = theirTurn
+    ? updateCards(state.cards, state.flipped, { status: 'down' })
+    : state.cards;
+  const common = {
+    ...state,
+    cards,
+    players,
+    flipped: theirTurn ? [] : state.flipped,
+    pendingResult: theirTurn ? null : state.pendingResult,
+    version: state.version + 1,
+  };
+  if (remaining <= 1) {
+    return {
+      ...common,
+      flipped: [],
+      pendingResult: null,
+      phase: 'finished',
+      endReason: 'abandoned',
+    };
+  }
+  if (!theirTurn) return common;
+  return { ...common, currentPlayer: nextInGame(players, player), phase: 'awaitingFirst' };
+}
+
+/**
  * The single source of truth for the rules. Pure: returns a new state, or the
  * very same object when the action is not allowed (so callers can detect no-ops
  * with `===`).
@@ -194,6 +252,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return resolve(state);
     case 'timeout':
       return timeout(state);
+    case 'leave':
+      return leave(state, action.player);
   }
 }
 
@@ -206,16 +266,48 @@ export function isFinished(state: GameState): boolean {
   return state.phase === 'finished';
 }
 
+/**
+ * Final ranking, best first. Players still in the game rank by pairs; equal
+ * scores share a place (competition ranking: 1, 1, 3). Players who left rank
+ * after everyone who stayed (also by pairs among themselves).
+ */
+export function getRanking(state: GameState): Standing[] {
+  const lines = state.players.map((p, player) => ({
+    player,
+    score: p.collected.length,
+    left: p.left,
+  }));
+  const sorted = [...lines].sort(
+    (a, b) => Number(a.left) - Number(b.left) || b.score - a.score || a.player - b.player,
+  );
+  return sorted.map((line, i) => {
+    const firstEqual = sorted.findIndex((o) => o.left === line.left && o.score === line.score);
+    return { ...line, rank: (firstEqual === -1 ? i : firstEqual) + 1 };
+  });
+}
+
 export function getOutcome(state: GameState): GameOutcome {
   const scores = state.players.map((p) => p.collected.length);
-  const best = Math.max(...scores);
-  const winners = scores.flatMap((s, i) => (s === best ? [i] : []));
+  const winners = getRanking(state)
+    .filter((s) => s.rank === 1)
+    .map((s) => s.player)
+    .sort((a, b) => a - b);
   return { winners, scores, isTie: winners.length > 1 };
 }
 
-/** Starting player for a rematch: the other player starts. */
+/** Who plays after the current player when the turn passes (null when the game is over). */
+export function upcomingPlayer(state: GameState): number | null {
+  if (state.phase === 'finished') return null;
+  const next = nextPlayer(state);
+  return next === state.currentPlayer ? null : next;
+}
+
+/** Starting player for a rematch: the next player in seating order starts. */
 export function rematchStartingPlayer(previous: GameState): number {
-  return (previous.startingPlayer + 1) % previous.players.length;
+  return nextInGame(
+    previous.players.map((p) => ({ ...p, left: false })),
+    previous.startingPlayer,
+  );
 }
 
 /** Card indices visible to an observer: face-up/matched cards only (used by the server). */
