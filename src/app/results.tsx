@@ -12,7 +12,8 @@ import { formatDuration } from '@/features/game/format';
 import { sessionElapsed, useGameSession, type GameSession } from '@/features/game/gameSessionStore';
 import { playAgain } from '@/features/game/startGame';
 import { playerColor } from '@/features/players/playersStore';
-import { getOutcome, starRating, type SoloScore } from '@/game';
+import { RankingList } from '@/features/game/components/RankingList';
+import { getOutcome, getRanking, starRating, type SoloScore } from '@/game';
 import { getDb } from '@/lib/db';
 import { feedback } from '@/lib/feedback';
 import { heroEntering, newBestEntering } from '@/ui/animation/motion';
@@ -212,6 +213,64 @@ function VersusResults({ session }: { session: GameSession }) {
   );
 }
 
+/** 3–8 players: the winner (or shared first place) and the full ranking. */
+function GroupResults({ session }: { session: GameSession }) {
+  const { t } = useTranslation();
+  const { state, config } = session;
+  const outcome = getOutcome(state);
+  const name = (i: number) => config.players[i]?.name.trim() || t('common.playerN', { n: i + 1 });
+  const imagesById = new Map(config.board.images.map((img) => [img.id, img]));
+  const winners = outcome.winners;
+
+  return (
+    <>
+      <Animated.View entering={heroEntering} style={styles.hero}>
+        <View style={styles.tieRow}>
+          {winners.map((i) => (
+            <View
+              key={i}
+              style={[
+                winners.length === 1 ? styles.winnerAvatar : styles.tieAvatar,
+                { backgroundColor: playerColor(config.players[i]!.color).main },
+              ]}
+            >
+              <Image
+                source={AVATAR_SOURCES[config.players[i]!.avatar]}
+                style={winners.length === 1 ? styles.winnerImage : styles.tieImage}
+              />
+            </View>
+          ))}
+        </View>
+        <AppText
+          variant="display"
+          color={colors.textOnDark}
+          align="center"
+          accessibilityRole="header"
+        >
+          {outcome.isTie ? t('results.tie') : t('results.winner', { name: name(winners[0]!) })}
+        </AppText>
+        {outcome.isTie ? (
+          <AppText variant="heading" color={colors.textOnDarkMuted} align="center">
+            {t('results.winnersTie')}
+          </AppText>
+        ) : null}
+      </Animated.View>
+      <RankingList
+        rows={getRanking(state).map((s) => ({
+          index: s.player,
+          rank: s.rank,
+          profile: config.players[s.player]!,
+          name: name(s.player),
+          left: s.left,
+          collected: (state.players[s.player]?.collected ?? [])
+            .map((id) => imagesById.get(id))
+            .filter((img): img is BoardImage => img !== undefined),
+        }))}
+      />
+    </>
+  );
+}
+
 export default function ResultsScreen() {
   const { t } = useTranslation();
   // Snapshot: "Play again" replaces the store's session before this screen unmounts.
@@ -230,7 +289,13 @@ export default function ResultsScreen() {
     <View style={styles.root}>
       <Screen showBack={false} scroll>
         <View style={styles.content}>
-          {isSolo ? <SoloResults session={session} /> : <VersusResults session={session} />}
+          {isSolo ? (
+            <SoloResults session={session} />
+          ) : config.players.length > 2 ? (
+            <GroupResults session={session} />
+          ) : (
+            <VersusResults session={session} />
+          )}
           <Animated.View entering={FadeInDown.delay(700)} style={styles.actions}>
             <GameButton
               label={t('results.playAgain')}
@@ -311,7 +376,7 @@ const styles = StyleSheet.create({
     boxShadow: shadows.lg,
   },
   winnerImage: { width: 72, height: 72 },
-  tieRow: { flexDirection: 'row', gap: spacing.md },
+  tieRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: spacing.md },
   tieAvatar: {
     width: 84,
     height: 84,

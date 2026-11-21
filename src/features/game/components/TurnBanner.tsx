@@ -14,7 +14,7 @@ import { AVATAR_SOURCES } from '@/features/boards/builtin';
 import { playerColor, type PlayerProfile } from '@/features/players/playersStore';
 import { AppText } from '@/ui/components';
 import { popTo } from '@/ui/animation/pop';
-import { colors, motion, radii, shadows, spacing } from '@/ui/theme';
+import { colors, motion, radii, shadows, spacing, typography } from '@/ui/theme';
 
 export interface TurnBannerProps {
   /** The banner plays whenever this changes while `enabled`. */
@@ -24,6 +24,8 @@ export interface TurnBannerProps {
   text: string;
   rotated: boolean;
   reduceMotion: boolean;
+  /** 3+ players on one phone: bigger, so everyone sees who gets the phone next. */
+  big?: boolean;
 }
 
 /** Total time the banner is on screen (ms) — shown, then gone by itself. */
@@ -41,6 +43,7 @@ export function TurnBanner({
   text,
   rotated,
   reduceMotion,
+  big = false,
 }: TurnBannerProps) {
   const color = playerColor(profile.color);
   const show = useSharedValue(0);
@@ -74,9 +77,19 @@ export function TurnBanner({
       style={[styles.wrap, style]}
       accessibilityLiveRegion="polite"
     >
-      <Animated.View style={[styles.pill, { backgroundColor: color.main }]}>
-        <Image source={AVATAR_SOURCES[profile.avatar]} style={styles.avatar} />
-        <AppText variant="title" color={colors.textOnDark} numberOfLines={1}>
+      <Animated.View style={[styles.pill, big && styles.pillBig, { backgroundColor: color.main }]}>
+        <Image
+          source={AVATAR_SOURCES[profile.avatar]}
+          style={big ? styles.avatarBig : styles.avatar}
+        />
+        <AppText
+          variant="title"
+          color={colors.textOnDark}
+          numberOfLines={1}
+          adjustsFontSizeToFit={big}
+          minimumFontScale={0.7}
+          style={big ? styles.textBig : null}
+        >
           {text}
         </AppText>
       </Animated.View>
@@ -109,4 +122,13 @@ const styles = StyleSheet.create({
     maxWidth: '92%',
   },
   avatar: { width: 40, height: 40 },
+  pillBig: {
+    flexDirection: 'column',
+    gap: spacing.sm,
+    paddingVertical: spacing.xl,
+    borderRadius: radii.xl,
+    borderWidth: 5,
+  },
+  avatarBig: { width: 72, height: 72 },
+  textBig: { fontSize: typography.display.fontSize, lineHeight: typography.display.lineHeight },
 });

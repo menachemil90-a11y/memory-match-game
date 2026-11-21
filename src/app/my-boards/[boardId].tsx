@@ -270,13 +270,11 @@ export default function BoardEditorScreen() {
           }
         />
         <GameButton
-          label={t('myBoards.playTwo')}
+          label={t('myBoards.playTogether')}
           icon="people"
           variant="danger"
           disabled={!canPlay}
-          onPress={() =>
-            router.push({ pathname: '/levels', params: { mode: 'local', boardId: board.id } })
-          }
+          onPress={() => router.push({ pathname: '/setup', params: { boardId: board.id } })}
         />
         <PlayOnlineButton boardId={board.id} disabled={!canPlay} />
         <GameButton

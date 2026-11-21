@@ -18,7 +18,7 @@ test.describe('home and the download button', () => {
   test('looks like the app, with a big download button and the top bar', async ({ page }) => {
     const problems = watchConsole(page);
     await page.goto('');
-    for (const name of ['Solo', '2 Players', 'Play Online', 'My Boards']) {
+    for (const name of ['Solo', '2–8 Players', 'Play Online', 'My Boards']) {
       await expect(page.getByRole('button', { name, exact: true })).toBeVisible();
     }
     const big = page.getByRole('link', { name: 'Download the app' });
@@ -35,7 +35,7 @@ test.describe('home and the download button', () => {
   }) => {
     const problems = watchConsole(page);
     await page.goto('');
-    for (const feature of ['Solo', '2 Players', 'My Boards']) {
+    for (const feature of ['Solo', '2–8 Players', 'My Boards']) {
       await page.getByRole('button', { name: feature, exact: true }).click();
       await expect(page.getByText('Available in the app')).toBeVisible();
       await expect(page.getByText(`${feature} is part of the free Android app.`)).toBeVisible();

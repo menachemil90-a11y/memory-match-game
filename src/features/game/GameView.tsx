@@ -21,10 +21,12 @@ import { playerColor } from '@/features/players/playersStore';
 import { useSettingsStore } from '@/features/settings/settingsStore';
 import { feedback } from '@/lib/feedback';
 import { AppText, Dialog, GameButton, IconButton } from '@/ui/components';
+import { upcomingPlayer } from '@/game';
 import { colors, motion, spacing } from '@/ui/theme';
 
 import { GameCard, type CardEffect, type DealIn, type FlyTarget } from './components/GameCard';
 import { PlayerPanel } from './components/PlayerPanel';
+import { PlayerStrip, type StripPlayer } from './components/PlayerStrip';
 import { SoloHud } from './components/SoloHud';
 import { TurnBanner } from './components/TurnBanner';
 import { useGameSession, sessionElapsed, type GameSession } from './gameSessionStore';
@@ -67,7 +69,9 @@ export function GameView({ session }: { session: GameSession }) {
   const { state, config } = session;
   const { board, mode } = config;
   const isSolo = mode === 'solo';
-  const tabletop = !isSolo && config.tabletop;
+  /** 3+ players: one strip at the top instead of a panel per side. */
+  const group = !isSolo && config.players.length > 2;
+  const tabletop = !isSolo && !group && config.tabletop;
 
   const imagesById = useMemo(
     () => new Map<string, BoardImage>(board.images.map((img) => [img.id, img])),
@@ -83,6 +87,8 @@ export function GameView({ session }: { session: GameSession }) {
 
   const gridRef = useRef<ViewRef>(null);
   const pileRefs = [useRef<ViewRef>(null), useRef<ViewRef>(null)];
+  /** 3+ players: the pile of the current player (in the strip). */
+  const stripPileRef = useRef<ViewRef>(null);
   const [flyTargets, setFlyTargets] = useState<Record<number, FlyTarget> | null>(null);
 
   const layout = useMemo(
@@ -137,7 +143,7 @@ export function GameView({ session }: { session: GameSession }) {
       if (!layout) return null;
       const [grid, pile] = await Promise.all([
         measure(gridRef.current),
-        measure(pileRefs[isSolo ? 0 : player]?.current ?? null),
+        measure(group ? stripPileRef.current : (pileRefs[isSolo ? 0 : player]?.current ?? null)),
       ]);
       if (!grid || !pile) return null;
       const targets: Record<number, FlyTarget> = {};
@@ -152,7 +158,7 @@ export function GameView({ session }: { session: GameSession }) {
     },
     // pileRefs are stable refs
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [layout, isSolo, state.cols],
+    [layout, isSolo, group, state.cols],
   );
 
   const resolveNow = useCallback(() => {
@@ -329,6 +335,13 @@ export function GameView({ session }: { session: GameSession }) {
       .map((id) => imagesById.get(id))
       .filter((img): img is BoardImage => img !== undefined);
 
+  const stripPlayers: StripPlayer[] = config.players.map((profile, index) => ({
+    index,
+    profile,
+    displayName: displayName(index),
+    collected: collectedImages(index),
+  }));
+
   const playerPanel = (index: number, rotated = false) => (
     <PlayerPanel
       profile={config.players[index]!}
@@ -354,29 +367,49 @@ export function GameView({ session }: { session: GameSession }) {
           },
         ]}
       >
-        <View style={styles.topRow}>
-          {tabletop ? null : (
-            <IconButton
-              icon="pause"
-              accessibilityLabel={t('game.pause')}
-              onPress={() => setLeaveOpen(true)}
-              size={48}
+        {group ? (
+          <View style={styles.stripRow}>
+            <PlayerStrip
+              players={stripPlayers}
+              current={state.phase === 'finished' ? null : state.currentPlayer}
+              next={upcomingPlayer(state)}
+              reduceMotion={reduceMotion}
+              pileRef={stripPileRef}
+              trailing={
+                <IconButton
+                  icon="pause"
+                  accessibilityLabel={t('game.pause')}
+                  onPress={() => setLeaveOpen(true)}
+                  size={48}
+                />
+              }
             />
-          )}
-          {isSolo ? (
-            <SoloHud
-              moves={state.moves}
-              pairsFound={state.pairsFound}
-              pairsTotal={state.pairsTotal}
-              getElapsed={() => {
-                const s = useGameSession.getState().session;
-                return s ? sessionElapsed(s) : 0;
-              }}
-            />
-          ) : (
-            <View style={styles.flex}>{playerPanel(1, tabletop)}</View>
-          )}
-        </View>
+          </View>
+        ) : (
+          <View style={styles.topRow}>
+            {tabletop ? null : (
+              <IconButton
+                icon="pause"
+                accessibilityLabel={t('game.pause')}
+                onPress={() => setLeaveOpen(true)}
+                size={48}
+              />
+            )}
+            {isSolo ? (
+              <SoloHud
+                moves={state.moves}
+                pairsFound={state.pairsFound}
+                pairsTotal={state.pairsTotal}
+                getElapsed={() => {
+                  const s = useGameSession.getState().session;
+                  return s ? sessionElapsed(s) : 0;
+                }}
+              />
+            ) : (
+              <View style={styles.flex}>{playerPanel(1, tabletop)}</View>
+            )}
+          </View>
+        )}
 
         <Pressable
           style={styles.gridArea}
@@ -450,26 +483,31 @@ export function GameView({ session }: { session: GameSession }) {
           </View>
         </Pressable>
 
-        <View style={styles.bottomRow}>
-          <View style={styles.flex}>{playerPanel(0)}</View>
-          {tabletop ? (
-            <IconButton
-              icon="pause"
-              accessibilityLabel={t('game.pause')}
-              onPress={() => setLeaveOpen(true)}
-              size={48}
-            />
-          ) : null}
-        </View>
+        {group ? null : (
+          <View style={styles.bottomRow}>
+            <View style={styles.flex}>{playerPanel(0)}</View>
+            {tabletop ? (
+              <IconButton
+                icon="pause"
+                accessibilityLabel={t('game.pause')}
+                onPress={() => setLeaveOpen(true)}
+                size={48}
+              />
+            ) : null}
+          </View>
+        )}
 
         {!isSolo ? (
           <TurnBanner
             playerIndex={state.currentPlayer}
             enabled={stage === 'playing' && state.phase !== 'finished'}
             profile={config.players[state.currentPlayer]!}
-            text={t('game.yourTurn', { name: displayName(state.currentPlayer) })}
+            text={t(group ? 'game.passPhone' : 'game.yourTurn', {
+              name: displayName(state.currentPlayer),
+            })}
             rotated={tabletop && state.currentPlayer === 1}
             reduceMotion={reduceMotion}
+            big={group}
           />
         ) : null}
       </View>
@@ -514,6 +552,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, zIndex: 1 },
   bottomRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, zIndex: 1 },
+  stripRow: { zIndex: 1 },
   gridArea: { flex: 1, zIndex: 10 },
   grid: { flex: 1 },
   slot: {

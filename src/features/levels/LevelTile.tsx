@@ -37,13 +37,26 @@ export interface LevelTileProps {
   availability: LevelAvailability;
   best?: SoloScore;
   showBest: boolean;
+  /**
+   * Too small for the group on this phone: the most players this level allows
+   * (the tile is shown disabled, like a locked level). Null when the group fits.
+   */
+  tooSmallFor?: number | null;
   /** Also called for locked levels: the screen explains how to unlock them. */
   onPress: () => void;
 }
 
-export function LevelTile({ availability, best, showBest, onPress }: LevelTileProps) {
+export function LevelTile({
+  availability,
+  best,
+  showBest,
+  tooSmallFor = null,
+  onPress,
+}: LevelTileProps) {
   const { t } = useTranslation();
-  const { level, locked, missingImages } = availability;
+  const { level, missingImages } = availability;
+  const tooSmall = tooSmallFor !== null;
+  const locked = availability.locked || tooSmall;
   const name = t(`levels.names.${level.id}`);
   const scheme = locked ? { face: palette.mist, edge: palette.slate } : LEVEL_COLORS[level.id];
   const ink = locked
@@ -51,7 +64,11 @@ export function LevelTile({ availability, best, showBest, onPress }: LevelTilePr
     : level.id === 'medium'
       ? palette.sunInk
       : colors.textOnDark;
-  const hint = locked ? t('levels.unlockHint', { count: missingImages, level: name }) : '';
+  const hint = availability.locked
+    ? t('levels.unlockHint', { count: missingImages, level: name })
+    : tooSmall
+      ? t('levels.tooSmallHint', { max: tooSmallFor })
+      : '';
 
   return (
     <Pressable3D
@@ -61,9 +78,11 @@ export function LevelTile({ availability, best, showBest, onPress }: LevelTilePr
       style={styles.wrapper}
       faceStyle={[styles.face, { backgroundColor: scheme.face }]}
       accessibilityLabel={
-        locked
+        availability.locked
           ? t('levels.a11yLocked', { level: name, hint })
-          : t('levels.a11yLevel', { level: name, pairs: level.pairs })
+          : tooSmall
+            ? t('levels.a11yTooSmall', { level: name, max: tooSmallFor })
+            : t('levels.a11yLevel', { level: name, pairs: level.pairs })
       }
     >
       {/* The name gets the full width so it never truncates on 360 dp phones. */}
@@ -86,7 +105,11 @@ export function LevelTile({ availability, best, showBest, onPress }: LevelTilePr
           </AppText>
         </View>
         {locked ? (
-          <Ionicons name="lock-closed" size={28} color={colors.textMuted} />
+          <Ionicons
+            name={availability.locked ? 'lock-closed' : 'people'}
+            size={28}
+            color={colors.textMuted}
+          />
         ) : (
           <MiniGrid cols={level.cols} rows={level.rows} color="rgba(255,255,255,0.75)" />
         )}

@@ -1,4 +1,6 @@
-import { Easing, Keyframe } from 'react-native-reanimated';
+import { Easing, FadeIn, Keyframe, LinearTransition } from 'react-native-reanimated';
+
+import { motion } from '@/ui/theme/tokens';
 
 /**
  * The game's shared motion settings: every spring and every pop-in comes from here.
@@ -51,3 +53,12 @@ export const heroEntering = popIn(0.9, 260);
 
 /** "New best!" badge on the results screen (appears after the stars). */
 export const newBestEntering = popIn(0.9, 260).delay(1100);
+
+/**
+ * Player strip (3+ players): when the turn passes, every player slides to their
+ * new place (timed, no spring), and the new current player's card fades in.
+ */
+export const stripTransition = LinearTransition.duration(motion.stripShift).easing(
+  Easing.inOut(Easing.cubic),
+);
+export const stripEntering = FadeIn.duration(motion.stripShift);

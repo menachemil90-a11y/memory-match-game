@@ -10,16 +10,20 @@ import { useBoard, useBoardName, useCustomBoardsStatus } from '@/features/boards
 import { bestScoresRepo } from '@/features/game/bestScoresRepo';
 import type { GameMode } from '@/features/game/gameSessionStore';
 import { startGame } from '@/features/game/startGame';
-import { usePlayersStore } from '@/features/players/playersStore';
+import { AVATAR_SOURCES } from '@/features/boards/builtin';
+import { playerColor, usePlayersStore } from '@/features/players/playersStore';
 import {
   getLevelAvailability,
+  isLevelAllowedForPlayers,
+  maxPlayersForLevel,
   MIN_BOARD_IMAGES,
+  smallestLevelForPlayers,
   type LevelAvailability,
   type LevelId,
   type SoloScore,
 } from '@/game';
 import { getDb } from '@/lib/db';
-import { AppText, Dialog, GameButton, Screen } from '@/ui/components';
+import { AppText, Dialog, GameButton, IconButton, Screen } from '@/ui/components';
 import { colors, radii, spacing } from '@/ui/theme';
 import { LevelTile } from '@/features/levels/LevelTile';
 
@@ -33,7 +37,11 @@ export default function LevelPickerScreen() {
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [locked, setLocked] = useState<LevelAvailability | null>(null);
+  const [tooSmall, setTooSmall] = useState<LevelId | null>(null);
   const customStatus = useCustomBoardsStatus();
+  /** Players on this phone (2–8 players: smaller boards don't give everyone turns). */
+  const group = usePlayersStore((s) => s.local);
+  const groupSize = mode === 'local' ? group.length : 1;
 
   useFocusEffect(
     useCallback(() => {
@@ -90,20 +98,18 @@ export default function LevelPickerScreen() {
       setLocked(availability);
       return;
     }
-    if (mode === 'local') {
-      router.push({ pathname: '/setup', params: { boardId: board.id, levelId } });
+    if (!isLevelAllowedForPlayers(levelId, groupSize)) {
+      setTooSmall(levelId);
       return;
     }
     setBusy(true);
     try {
-      const { local } = usePlayersStore.getState();
-      await startGame({
-        mode: 'solo',
-        board,
-        levelId,
-        players: [{ ...local[0], name: '' }],
-        tabletop: false,
-      });
+      const { local, tabletop } = usePlayersStore.getState();
+      await startGame(
+        mode === 'local'
+          ? { mode, board, levelId, players: local, tabletop: local.length === 2 && tabletop }
+          : { mode, board, levelId, players: [{ ...local[0]!, name: '' }], tabletop: false },
+      );
     } catch (e) {
       console.error('Starting a game failed', e);
       setError(true);
@@ -155,6 +161,34 @@ export default function LevelPickerScreen() {
           />
         </View>
       ) : null}
+      {mode === 'local' ? (
+        <View style={styles.groupRow}>
+          <View style={styles.groupAvatars} accessible={false}>
+            {group.map((p, i) => (
+              <View
+                key={p.color}
+                style={[
+                  styles.groupAvatar,
+                  {
+                    backgroundColor: playerColor(p.color).main,
+                    marginLeft: i === 0 ? 0 : group.length > 4 ? -18 : -12,
+                  },
+                ]}
+              >
+                <Image source={AVATAR_SOURCES[p.avatar]} style={styles.groupAvatarImage} />
+              </View>
+            ))}
+          </View>
+          <AppText variant="bodyStrong" color={colors.textOnDark} style={styles.flex}>
+            {t('levels.players', { count: groupSize })}
+          </AppText>
+          <IconButton
+            icon="create-outline"
+            accessibilityLabel={t('levels.changePlayers')}
+            onPress={() => router.dismissTo('/setup')}
+          />
+        </View>
+      ) : null}
       {isCustom ? (
         <GameButton
           label={t('levels.editBoard')}
@@ -172,6 +206,11 @@ export default function LevelPickerScreen() {
             availability={a}
             best={best[a.level.id]}
             showBest={mode === 'solo'}
+            tooSmallFor={
+              isLevelAllowedForPlayers(a.level.id, groupSize)
+                ? null
+                : maxPlayersForLevel(a.level.id)
+            }
             onPress={() => void choose(a)}
           />
         ))}
@@ -216,6 +255,36 @@ export default function LevelPickerScreen() {
           onPress={() => setLocked(null)}
         />
       </Dialog>
+      <Dialog
+        visible={tooSmall !== null}
+        title={
+          tooSmall
+            ? t('levels.tooSmallTitle', { level: t(`levels.names.${tooSmall}`), count: groupSize })
+            : ''
+        }
+        message={t('levels.tooSmallMessage', {
+          count: groupSize,
+          smallest: t(`levels.names.${smallestLevelForPlayers(groupSize).id}`),
+        })}
+        onRequestClose={() => setTooSmall(null)}
+      >
+        <GameButton
+          label={t('levels.changePlayers')}
+          icon="people"
+          variant="info"
+          size="md"
+          onPress={() => {
+            setTooSmall(null);
+            router.dismissTo('/setup');
+          }}
+        />
+        <GameButton
+          label={t('common.cancel')}
+          variant="secondary"
+          size="md"
+          onPress={() => setTooSmall(null)}
+        />
+      </Dialog>
       <Dialog visible={error} title={t('game.loadError')} onRequestClose={() => setError(false)}>
         <GameButton label={t('common.ok')} size="md" onPress={() => setError(false)} />
       </Dialog>
@@ -251,5 +320,23 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   edit: { marginBottom: spacing.lg },
+  flex: { flex: 1 },
+  groupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  groupAvatars: { flexDirection: 'row', flexShrink: 1 },
+  groupAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: colors.card.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  groupAvatarImage: { width: 24, height: 24 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
 });

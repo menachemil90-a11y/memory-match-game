@@ -84,9 +84,9 @@ describe('app-only features', () => {
       </>,
     );
     expect(screen.getByRole('link', { name: 'Download the app' })).toBeTruthy();
-    await fireEvent.press(screen.getByRole('button', { name: '2 Players' }));
+    await fireEvent.press(screen.getByRole('button', { name: '2–8 Players' }));
     expect(screen.getByText('Available in the app')).toBeTruthy();
-    expect(screen.getByText(/^2 Players is part of the free Android app\./)).toBeTruthy();
+    expect(screen.getByText(/^2–8 Players is part of the free Android app\./)).toBeTruthy();
     expect(screen.getAllByRole('link', { name: /Download/ })).toHaveLength(2);
     expect(mockRouter.push).not.toHaveBeenCalled();
     await fireEvent.press(screen.getByRole('button', { name: 'Play Online' }));

@@ -78,12 +78,10 @@ export default function HomeScreen() {
           }
         />
         <GameButton
-          label={t('home.twoPlayers')}
+          label={t('home.together')}
           icon="people"
           variant="danger"
-          onPress={() =>
-            openAppFeature(t('home.twoPlayers'), { pathname: '/boards', params: { mode: 'local' } })
-          }
+          onPress={() => openAppFeature(t('home.together'), '/setup')}
         />
         <GameButton
           label={t('home.online')}

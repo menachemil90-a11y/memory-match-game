@@ -20,6 +20,10 @@ export const palette = {
   coralDark: '#C2294F',
   tangerine: '#EC6A10',
   tangerineDark: '#B54E04',
+  berry: '#D63AAF',
+  berryDark: '#9E1F7E',
+  teal: '#0FA3A3',
+  tealDark: '#0A7373',
 
   // Neutrals
   white: '#FFFFFF',
@@ -66,7 +70,10 @@ export const colors = {
     accent: { face: palette.tangerine, edge: palette.tangerineDark, text: palette.white },
   },
 
-  /** Preset player colors for pass-and-play (never used as the only cue). */
+  /**
+   * Preset player colors (never used as the only cue): one per player, so a full
+   * group of MAX_PLAYERS (8) never shares a color.
+   */
   players: [
     { id: 'coral', main: palette.coral, dark: palette.coralDark },
     { id: 'sky', main: palette.sky, dark: palette.skyDark },
@@ -74,6 +81,8 @@ export const colors = {
     { id: 'tangerine', main: palette.tangerine, dark: palette.tangerineDark },
     { id: 'grape', main: palette.grapeLight, dark: palette.grape },
     { id: 'sun', main: palette.sun, dark: palette.sunDark },
+    { id: 'berry', main: palette.berry, dark: palette.berryDark },
+    { id: 'teal', main: palette.teal, dark: palette.tealDark },
   ],
 } as const;
 
@@ -144,6 +153,8 @@ export const motion = {
   turnBanner: { in: 240, hold: 700, out: 450 },
   /** Timed "pop" (overshoot then settle) for a pair match and the pile counter (ms). */
   pop: 260,
+  /** Player strip (3+ players): players slide to their new places when the turn passes (ms). */
+  stripShift: 280,
 } as const;
 
 /** Minimum comfortable touch target (dp), per Android/iOS guidelines. */
