@@ -1,0 +1,39 @@
+name: Supabase keep-alive
+
+# Supabase pauses Free-plan projects that get too little database activity in a
+# week, which would silently break online play. This runs one tiny read-only
+# query (the public app_config table, via the public anon key in
+# supabase-public.env — the same public values the web game ships) every
+# 3 days. It runs here because this repository is public (free Actions); the
+# game's code repository is private. Not needed once the project is on a paid plan.
+# Note: GitHub disables scheduled workflows after 60 days without repository
+# activity; re-enable it under Actions if that happens.
+on:
+  schedule:
+    - cron: '23 6 */3 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: supabase-public.env
+          sparse-checkout-cone-mode: false
+
+      - name: Read the public config table
+        run: |
+          set -a; . ./supabase-public.env; set +a
+          status=$(curl -sS -m 30 -o body.json -w '%{http_code}' \
+            "$EXPO_PUBLIC_SUPABASE_URL/rest/v1/app_config?select=key" \
+            -H "apikey: $EXPO_PUBLIC_SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $EXPO_PUBLIC_SUPABASE_ANON_KEY")
+          echo "HTTP $status"
+          cat body.json; echo
+          test "$status" = 200
+          grep -q min_supported_version body.json
